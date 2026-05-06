@@ -24,6 +24,62 @@ function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
+function easterSunday(year) {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+function jeuneGenevois(year) {
+  const sept1 = new Date(year, 8, 1);
+  const firstSunday = 1 + ((7 - sept1.getDay()) % 7);
+  return new Date(year, 8, firstSunday + 4);
+}
+
+const holidayCache = {};
+
+function holidaysForYear(year) {
+  if (holidayCache[year]) return holidayCache[year];
+  const easter = easterSunday(year);
+  const map = {};
+  const add = (d, name) => { map[isoDate(d)] = name; };
+  add(new Date(year, 0, 1), 'Nouvel An');
+  add(addDays(easter, -2), 'Vendredi saint');
+  add(addDays(easter, 1), 'Lundi de Pâques');
+  add(new Date(year, 4, 1), 'Fête du Travail');
+  add(addDays(easter, 39), 'Ascension');
+  add(addDays(easter, 50), 'Lundi de Pentecôte');
+  add(new Date(year, 7, 1), 'Fête nationale');
+  add(jeuneGenevois(year), 'Jeûne genevois');
+  add(new Date(year, 11, 25), 'Noël');
+  add(new Date(year, 11, 31), 'Restauration de la République');
+  holidayCache[year] = map;
+  return map;
+}
+
+function holidayName(iso) {
+  const year = Number(iso.slice(0, 4));
+  return holidaysForYear(year)[iso] || null;
+}
+
 function colorForPerson(name) {
   const key = name.trim().toLowerCase();
   let hash = 0;
@@ -110,10 +166,15 @@ function renderCalendar() {
     const wd = d.getDay();
     const isWeekend = wd === 0 || wd === 6;
     const isToday = iso === todayIso;
+    const holiday = holidayName(iso);
 
     const th1 = document.createElement('th');
     th1.className = 'day-col';
     if (isWeekend) th1.classList.add('weekend');
+    if (holiday) {
+      th1.classList.add('holiday');
+      th1.title = holiday;
+    }
     if (isToday) th1.classList.add('today');
     th1.textContent = day;
     headRow1.appendChild(th1);
@@ -121,6 +182,10 @@ function renderCalendar() {
     const th2 = document.createElement('th');
     th2.className = 'day-col day-letter';
     if (isWeekend) th2.classList.add('weekend');
+    if (holiday) {
+      th2.classList.add('holiday');
+      th2.title = holiday;
+    }
     if (isToday) th2.classList.add('today');
     th2.textContent = DAY_LETTERS[wd];
     headRow2.appendChild(th2);
@@ -159,6 +224,7 @@ function renderCalendar() {
         const wd = d.getDay();
         const isWeekend = wd === 0 || wd === 6;
         const isToday = iso === todayIso;
+        const holiday = holidayName(iso);
         const abs = state.absences.find(
           a => a.person === person && iso >= a.start && iso <= a.end,
         );
@@ -166,12 +232,15 @@ function renderCalendar() {
         const td = document.createElement('td');
         td.className = 'day-cell';
         if (isWeekend) td.classList.add('weekend');
+        if (holiday) td.classList.add('holiday');
         if (isToday) td.classList.add('today');
         if (abs) {
           td.classList.add('absent');
           td.style.setProperty('--person-fill', color.fill);
           td.style.setProperty('--person-bg', color.bg);
           td.title = `${person} : du ${formatDateFr(abs.start)} au ${formatDateFr(abs.end)}`;
+        } else if (holiday) {
+          td.title = holiday;
         }
         tr.appendChild(td);
       }

@@ -11,6 +11,8 @@
   --weekend-bg: #f9fafb;
   --absence-bg: #dbeafe;
   --absence-text: #1e3a8a;
+  --holiday-bg: #fee2e2;
+  --holiday-text: #991b1b;
 }
 
 * { box-sizing: border-box; }
@@ -169,6 +171,8 @@ button:hover { background: var(--primary-hover); }
 }
 
 .absence-table .weekend { background: var(--weekend-bg); }
+.absence-table .holiday { background: var(--holiday-bg); color: var(--holiday-text); }
+.absence-table thead th.holiday { color: var(--holiday-text); }
 .absence-table .today { background: var(--today-bg); }
 
 .absence-table td.absent {
