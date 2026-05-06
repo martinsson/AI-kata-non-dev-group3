@@ -1,3 +1,53 @@
 <!doctype html>
-<title>Hello</title>
-<h1>Hello, world!</h1>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestion des absences</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <h1>Absences de l'équipe</h1>
+</header>
+
+<main>
+  <section class="form-card">
+    <h2>Saisir une absence</h2>
+    <form id="absence-form">
+      <label>
+        Personne
+        <input type="text" id="person" required maxlength="40" placeholder="Prénom">
+      </label>
+      <label>
+        Du
+        <input type="date" id="start" required>
+      </label>
+      <label>
+        Au
+        <input type="date" id="end" required>
+      </label>
+      <button type="submit">Ajouter</button>
+    </form>
+    <p id="form-error" class="error" hidden></p>
+  </section>
+
+  <section class="calendar-card">
+    <div class="calendar-header">
+      <button id="prev-month" type="button" aria-label="Mois précédent">‹</button>
+      <h2 id="month-label"></h2>
+      <button id="next-month" type="button" aria-label="Mois suivant">›</button>
+      <button id="today" type="button">Aujourd'hui</button>
+    </div>
+    <div id="calendar" class="calendar"></div>
+  </section>
+
+  <section class="list-card">
+    <h2>Toutes les absences</h2>
+    <ul id="absence-list"></ul>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
