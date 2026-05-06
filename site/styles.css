@@ -43,7 +43,7 @@ main {
 
 @media (min-width: 900px) {
   main {
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: 220px 1fr;
     grid-template-areas:
       "form calendar"
       "list list";
