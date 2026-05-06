@@ -12,6 +12,20 @@
 </header>
 
 <main>
+  <section class="data-source-card">
+    <div id="data-source-status" class="data-status">
+      <span id="data-status-text">Initialisation...</span>
+      <span id="data-status-detail" class="data-status-detail"></span>
+    </div>
+    <div class="data-source-actions">
+      <button type="button" id="connect-file" hidden>Connecter un fichier partagé…</button>
+      <button type="button" id="create-file" hidden>Créer un nouveau fichier…</button>
+      <button type="button" id="grant-permission" hidden>Autoriser l'accès au fichier</button>
+      <button type="button" id="refresh-file" hidden>Actualiser</button>
+      <button type="button" id="disconnect-file" hidden class="link-btn">Déconnecter</button>
+    </div>
+  </section>
+
   <section class="form-card">
     <div id="user-identity" class="user-identity" hidden>
       <span id="user-greeting"></span>

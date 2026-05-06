@@ -45,13 +45,43 @@ main {
   main {
     grid-template-columns: 220px 1fr;
     grid-template-areas:
+      "data data"
       "form calendar"
       "list list";
   }
+  .data-source-card { grid-area: data; }
   .form-card { grid-area: form; }
   .calendar-card { grid-area: calendar; }
   .list-card { grid-area: list; }
 }
+
+.data-source-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.data-source-card.status-local { background: #fffbeb; border-color: #fde68a; }
+.data-source-card.status-prompt { background: #fff7ed; border-color: #fdba74; }
+.data-source-card.status-connected { background: #f0fdf4; border-color: #bbf7d0; }
+.data-source-card.status-error { background: #fef2f2; border-color: #fca5a5; }
+.data-source-card.status-unsupported { background: #f3f4f6; border-color: #d1d5db; }
+
+.data-status { display: flex; flex-direction: column; gap: 0.15rem; flex: 1; min-width: 240px; }
+.data-status #data-status-text { font-weight: 600; font-size: 0.9rem; }
+.data-status-detail { font-size: 0.8rem; color: var(--muted); }
+
+.data-source-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.data-source-actions button { font-size: 0.85rem; padding: 0.4rem 0.75rem; }
 
 section {
   background: var(--card);

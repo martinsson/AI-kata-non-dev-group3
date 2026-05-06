@@ -1,12 +1,18 @@
 const STORAGE_KEY = 'team-absences-v1';
 const USER_KEY = 'team-absences-user-v1';
 const DAY_LETTERS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+const DB_NAME = 'absences-db';
+const DB_STORE = 'handles';
+const HANDLE_KEY = 'shared-file';
+
+const fsApiAvailable = 'showOpenFilePicker' in window;
 
 const state = {
   absences: load(),
   currentUser: localStorage.getItem(USER_KEY) || '',
   viewYear: new Date().getFullYear(),
   viewMonth: new Date().getMonth(),
+  fileHandle: null,
 };
 
 function load() {
@@ -20,6 +26,191 @@ function load() {
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.absences));
+}
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbGet(key) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const r = db.transaction(DB_STORE, 'readonly').objectStore(DB_STORE).get(key);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+
+async function dbSet(key, val) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(DB_STORE, 'readwrite');
+    tx.objectStore(DB_STORE).put(val, key);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+
+async function dbDelete(key) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(DB_STORE, 'readwrite');
+    tx.objectStore(DB_STORE).delete(key);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+
+async function verifyPermission(handle, mode = 'readwrite') {
+  const opts = { mode };
+  if ((await handle.queryPermission(opts)) === 'granted') return 'granted';
+  return 'prompt';
+}
+
+async function requestPermission(handle, mode = 'readwrite') {
+  const opts = { mode };
+  if ((await handle.queryPermission(opts)) === 'granted') return true;
+  return (await handle.requestPermission(opts)) === 'granted';
+}
+
+async function readFromFile() {
+  const file = await state.fileHandle.getFile();
+  const text = await file.text();
+  if (!text.trim()) return [];
+  const parsed = JSON.parse(text);
+  if (Array.isArray(parsed)) return parsed;
+  if (Array.isArray(parsed.absences)) return parsed.absences;
+  return [];
+}
+
+async function writeToFile(absences) {
+  const writable = await state.fileHandle.createWritable();
+  await writable.write(JSON.stringify({ absences }, null, 2));
+  await writable.close();
+}
+
+async function syncFromFile() {
+  if (!state.fileHandle) return;
+  try {
+    state.absences = await readFromFile();
+    state.absences.sort((a, b) => a.start.localeCompare(b.start));
+    render();
+    updateDataStatus('connected');
+  } catch (err) {
+    console.error('Erreur de lecture du fichier partagé', err);
+    updateDataStatus('error', err.message);
+  }
+}
+
+function updateDataStatus(status, detail = '') {
+  const statusText = document.getElementById('data-status-text');
+  const statusDetail = document.getElementById('data-status-detail');
+  const connectBtn = document.getElementById('connect-file');
+  const createBtn = document.getElementById('create-file');
+  const grantBtn = document.getElementById('grant-permission');
+  const refreshBtn = document.getElementById('refresh-file');
+  const disconnectBtn = document.getElementById('disconnect-file');
+  const card = document.querySelector('.data-source-card');
+
+  [connectBtn, createBtn, grantBtn, refreshBtn, disconnectBtn].forEach(b => b.hidden = true);
+  card.classList.remove('status-local', 'status-connected', 'status-prompt', 'status-error', 'status-unsupported');
+
+  if (status === 'unsupported') {
+    statusText.textContent = '⚠ Navigateur non compatible — données locales uniquement';
+    statusDetail.textContent = 'Utilisez Chrome ou Edge pour partager un fichier sur le réseau.';
+    card.classList.add('status-unsupported');
+  } else if (status === 'local') {
+    statusText.textContent = 'Données stockées dans ce navigateur uniquement';
+    statusDetail.textContent = 'Pour partager avec votre équipe, connectez un fichier sur un emplacement réseau.';
+    connectBtn.hidden = false;
+    createBtn.hidden = false;
+    card.classList.add('status-local');
+  } else if (status === 'prompt') {
+    const name = state.fileHandle ? state.fileHandle.name : '';
+    statusText.textContent = `Fichier en attente de permission : ${name}`;
+    statusDetail.textContent = '';
+    grantBtn.hidden = false;
+    disconnectBtn.hidden = false;
+    card.classList.add('status-prompt');
+  } else if (status === 'connected') {
+    const name = state.fileHandle ? state.fileHandle.name : '';
+    statusText.textContent = `✓ Connecté à ${name}`;
+    statusDetail.textContent = 'Les absences sont partagées avec votre équipe.';
+    refreshBtn.hidden = false;
+    disconnectBtn.hidden = false;
+    card.classList.add('status-connected');
+  } else if (status === 'error') {
+    statusText.textContent = '⚠ Erreur d\'accès au fichier';
+    statusDetail.textContent = detail || '';
+    connectBtn.hidden = false;
+    disconnectBtn.hidden = false;
+    card.classList.add('status-error');
+  }
+}
+
+async function connectFile(create = false) {
+  try {
+    let handle;
+    if (create) {
+      handle = await window.showSaveFilePicker({
+        suggestedName: 'absences.json',
+        types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
+      });
+    } else {
+      const [h] = await window.showOpenFilePicker({
+        types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
+      });
+      handle = h;
+    }
+    state.fileHandle = handle;
+    await dbSet(HANDLE_KEY, handle);
+    if (create) {
+      await writeToFile(state.absences);
+    } else {
+      await syncFromFile();
+    }
+    updateDataStatus('connected');
+  } catch (err) {
+    if (err.name !== 'AbortError') console.error(err);
+  }
+}
+
+async function disconnectFile() {
+  state.fileHandle = null;
+  await dbDelete(HANDLE_KEY);
+  state.absences = load();
+  render();
+  updateDataStatus('local');
+}
+
+async function restoreFileHandle() {
+  if (!fsApiAvailable) {
+    updateDataStatus('unsupported');
+    return;
+  }
+  let handle;
+  try {
+    handle = await dbGet(HANDLE_KEY);
+  } catch {
+    updateDataStatus('local');
+    return;
+  }
+  if (!handle) {
+    updateDataStatus('local');
+    return;
+  }
+  state.fileHandle = handle;
+  const perm = await verifyPermission(handle);
+  if (perm === 'granted') {
+    await syncFromFile();
+  } else {
+    updateDataStatus('prompt');
+  }
 }
 
 function saveUser(name) {
@@ -138,16 +329,42 @@ function formatDateFr(s) {
   });
 }
 
-function addAbsence(person, start, end) {
-  state.absences.push({ id: uid(), person: person.trim(), start, end });
-  state.absences.sort((a, b) => a.start.localeCompare(b.start));
-  save();
+async function addAbsence(person, start, end) {
+  const newAbs = { id: uid(), person: person.trim(), start, end };
+  if (state.fileHandle) {
+    try {
+      const remote = await readFromFile();
+      const merged = [...remote, newAbs].sort((a, b) => a.start.localeCompare(b.start));
+      await writeToFile(merged);
+      state.absences = merged;
+    } catch (err) {
+      console.error('Erreur d\'écriture', err);
+      updateDataStatus('error', err.message);
+      return;
+    }
+  } else {
+    state.absences.push(newAbs);
+    state.absences.sort((a, b) => a.start.localeCompare(b.start));
+    save();
+  }
   render();
 }
 
-function deleteAbsence(id) {
-  state.absences = state.absences.filter(a => a.id !== id);
-  save();
+async function deleteAbsence(id) {
+  if (state.fileHandle) {
+    try {
+      const remote = await readFromFile();
+      state.absences = remote.filter(a => a.id !== id);
+      await writeToFile(state.absences);
+    } catch (err) {
+      console.error('Erreur d\'écriture', err);
+      updateDataStatus('error', err.message);
+      return;
+    }
+  } else {
+    state.absences = state.absences.filter(a => a.id !== id);
+    save();
+  }
   render();
 }
 
@@ -335,7 +552,7 @@ document.getElementById('change-user').addEventListener('click', () => {
   renderUserIdentity();
 });
 
-document.getElementById('absence-form').addEventListener('submit', (e) => {
+document.getElementById('absence-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const person = document.getElementById('person').value;
   const start = document.getElementById('start').value;
@@ -350,10 +567,24 @@ document.getElementById('absence-form').addEventListener('submit', (e) => {
   }
   err.hidden = true;
 
-  addAbsence(person, start, end);
+  await addAbsence(person, start, end);
   e.target.reset();
   if (state.currentUser) document.getElementById('person').value = state.currentUser;
   document.getElementById('start').focus();
+});
+
+document.getElementById('connect-file').addEventListener('click', () => connectFile(false));
+document.getElementById('create-file').addEventListener('click', () => connectFile(true));
+document.getElementById('refresh-file').addEventListener('click', () => syncFromFile());
+document.getElementById('disconnect-file').addEventListener('click', () => disconnectFile());
+document.getElementById('grant-permission').addEventListener('click', async () => {
+  if (!state.fileHandle) return;
+  const ok = await requestPermission(state.fileHandle);
+  if (ok) await syncFromFile();
+});
+
+window.addEventListener('focus', () => {
+  if (state.fileHandle) syncFromFile();
 });
 
 document.getElementById('start').addEventListener('change', (e) => {
@@ -392,3 +623,4 @@ document.getElementById('today').addEventListener('click', () => {
 
 renderUserIdentity();
 render();
+restoreFileHandle();
