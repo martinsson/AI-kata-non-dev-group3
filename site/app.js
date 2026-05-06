@@ -356,6 +356,13 @@ document.getElementById('absence-form').addEventListener('submit', (e) => {
   document.getElementById('start').focus();
 });
 
+document.getElementById('start').addEventListener('change', (e) => {
+  const end = document.getElementById('end');
+  if (!end.value || end.value < e.target.value) {
+    end.value = e.target.value;
+  }
+});
+
 document.getElementById('prev-month').addEventListener('click', () => {
   if (state.viewMonth === 0) {
     state.viewMonth = 11;
