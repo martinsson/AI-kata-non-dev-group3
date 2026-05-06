@@ -109,53 +109,86 @@ button:hover { background: var(--primary-hover); }
 .calendar-header button { padding: 0.4rem 0.8rem; }
 
 .calendar {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 1px;
-  background: var(--border);
+  overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: 4px;
-  overflow: hidden;
 }
 
-.day-name {
-  background: #f3f4f6;
-  padding: 0.5rem;
-  text-align: center;
+.absence-table {
+  border-collapse: collapse;
   font-size: 0.8rem;
-  font-weight: 600;
+  width: 100%;
+}
+
+.absence-table th,
+.absence-table td {
+  border: 1px solid var(--border);
+  text-align: center;
+  padding: 0;
+}
+
+.absence-table thead th {
+  background: #f3f4f6;
   color: var(--muted);
+  font-weight: 600;
+  height: 26px;
+  min-width: 24px;
+}
+
+.absence-table th.day-col,
+.absence-table td.day-cell {
+  width: 26px;
+  min-width: 26px;
+}
+
+.absence-table th.day-letter {
+  font-size: 0.7rem;
   text-transform: uppercase;
 }
 
-.day {
-  background: var(--card);
-  min-height: 90px;
-  padding: 0.4rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  font-size: 0.85rem;
-}
-
-.day.weekend { background: var(--weekend-bg); }
-.day.other-month { background: #fafafa; color: #cbd5e1; }
-.day.today { background: var(--today-bg); }
-
-.day-number {
+.absence-table th.person-col,
+.absence-table td.person-col {
+  position: sticky;
+  left: 0;
+  background: #f3f4f6;
+  text-align: left;
+  padding: 0.4rem 0.75rem;
+  min-width: 130px;
   font-weight: 600;
-  font-size: 0.85rem;
+  z-index: 1;
 }
 
-.absence-pill {
+.absence-table tbody td.person-col {
+  background: var(--card);
+  font-weight: 500;
+}
+
+.absence-table td.day-cell {
+  height: 32px;
+  background: var(--card);
+}
+
+.absence-table .weekend { background: var(--weekend-bg); }
+.absence-table .today { background: var(--today-bg); }
+
+.absence-table td.absent {
   background: var(--absence-bg);
-  color: var(--absence-text);
-  padding: 2px 6px;
+  position: relative;
+}
+
+.absence-table td.absent::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  background: var(--primary);
   border-radius: 3px;
-  font-size: 0.75rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.absence-table td.empty-row {
+  padding: 1rem;
+  color: var(--muted);
+  font-style: italic;
+  text-align: center;
 }
 
 .list-card ul { list-style: none; padding: 0; margin: 0; }

@@ -1,5 +1,5 @@
 const STORAGE_KEY = 'team-absences-v1';
-const DAY_NAMES = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const DAY_LETTERS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 
 const state = {
   absences: load(),
@@ -59,6 +59,11 @@ function absencesForDay(isoDay) {
   return state.absences.filter(a => isoDay >= a.start && isoDay <= a.end);
 }
 
+function uniquePeople() {
+  const set = new Set(state.absences.map(a => a.person));
+  return [...set].sort((a, b) => a.localeCompare(b, 'fr'));
+}
+
 function renderCalendar() {
   const cal = document.getElementById('calendar');
   const label = document.getElementById('month-label');
@@ -67,44 +72,94 @@ function renderCalendar() {
   const first = new Date(state.viewYear, state.viewMonth, 1);
   label.textContent = first.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 
-  for (const name of DAY_NAMES) {
-    const el = document.createElement('div');
-    el.className = 'day-name';
-    el.textContent = name;
-    cal.appendChild(el);
-  }
-
-  const startWeekday = (first.getDay() + 6) % 7;
-  const gridStart = new Date(state.viewYear, state.viewMonth, 1 - startWeekday);
+  const daysInMonth = new Date(state.viewYear, state.viewMonth + 1, 0).getDate();
   const todayIso = isoDate(new Date());
+  const people = uniquePeople();
 
-  for (let i = 0; i < 42; i++) {
-    const d = new Date(gridStart);
-    d.setDate(gridStart.getDate() + i);
+  const table = document.createElement('table');
+  table.className = 'absence-table';
+
+  const thead = document.createElement('thead');
+  const headRow1 = document.createElement('tr');
+  const cornerTh = document.createElement('th');
+  cornerTh.className = 'person-col';
+  cornerTh.textContent = 'Personne';
+  cornerTh.rowSpan = 2;
+  headRow1.appendChild(cornerTh);
+
+  const headRow2 = document.createElement('tr');
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(state.viewYear, state.viewMonth, day);
     const iso = isoDate(d);
-
-    const cell = document.createElement('div');
-    cell.className = 'day';
-    if (d.getMonth() !== state.viewMonth) cell.classList.add('other-month');
     const wd = d.getDay();
-    if (wd === 0 || wd === 6) cell.classList.add('weekend');
-    if (iso === todayIso) cell.classList.add('today');
+    const isWeekend = wd === 0 || wd === 6;
+    const isToday = iso === todayIso;
 
-    const num = document.createElement('div');
-    num.className = 'day-number';
-    num.textContent = d.getDate();
-    cell.appendChild(num);
+    const th1 = document.createElement('th');
+    th1.className = 'day-col';
+    if (isWeekend) th1.classList.add('weekend');
+    if (isToday) th1.classList.add('today');
+    th1.textContent = day;
+    headRow1.appendChild(th1);
 
-    for (const abs of absencesForDay(iso)) {
-      const pill = document.createElement('div');
-      pill.className = 'absence-pill';
-      pill.textContent = abs.person;
-      pill.title = `${abs.person} (${formatDateFr(abs.start)} → ${formatDateFr(abs.end)})`;
-      cell.appendChild(pill);
-    }
-
-    cal.appendChild(cell);
+    const th2 = document.createElement('th');
+    th2.className = 'day-col day-letter';
+    if (isWeekend) th2.classList.add('weekend');
+    if (isToday) th2.classList.add('today');
+    th2.textContent = DAY_LETTERS[wd];
+    headRow2.appendChild(th2);
   }
+
+  thead.appendChild(headRow1);
+  thead.appendChild(headRow2);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+
+  if (people.length === 0) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = daysInMonth + 1;
+    td.className = 'empty-row';
+    td.textContent = 'Aucune personne — saisissez une absence pour commencer.';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  } else {
+    for (const person of people) {
+      const tr = document.createElement('tr');
+      const nameTd = document.createElement('td');
+      nameTd.className = 'person-col';
+      nameTd.textContent = person;
+      tr.appendChild(nameTd);
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const d = new Date(state.viewYear, state.viewMonth, day);
+        const iso = isoDate(d);
+        const wd = d.getDay();
+        const isWeekend = wd === 0 || wd === 6;
+        const isToday = iso === todayIso;
+        const abs = state.absences.find(
+          a => a.person === person && iso >= a.start && iso <= a.end,
+        );
+
+        const td = document.createElement('td');
+        td.className = 'day-cell';
+        if (isWeekend) td.classList.add('weekend');
+        if (isToday) td.classList.add('today');
+        if (abs) {
+          td.classList.add('absent');
+          td.title = `${person} : du ${formatDateFr(abs.start)} au ${formatDateFr(abs.end)}`;
+        }
+        tr.appendChild(td);
+      }
+
+      tbody.appendChild(tr);
+    }
+  }
+
+  table.appendChild(tbody);
+  cal.appendChild(table);
 }
 
 function renderList() {
