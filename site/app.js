@@ -24,6 +24,21 @@ function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
+function colorForPerson(name) {
+  const key = name.trim().toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash * 31 + key.charCodeAt(i)) | 0;
+  }
+  const hue = ((hash % 360) + 360) % 360;
+  return {
+    bg: `hsl(${hue} 70% 88%)`,
+    fill: `hsl(${hue} 65% 55%)`,
+    text: `hsl(${hue} 60% 28%)`,
+    border: `hsl(${hue} 50% 70%)`,
+  };
+}
+
 function isoDate(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -127,10 +142,15 @@ function renderCalendar() {
     tbody.appendChild(tr);
   } else {
     for (const person of people) {
+      const color = colorForPerson(person);
       const tr = document.createElement('tr');
       const nameTd = document.createElement('td');
       nameTd.className = 'person-col';
-      nameTd.textContent = person;
+      const dot = document.createElement('span');
+      dot.className = 'person-dot';
+      dot.style.background = color.fill;
+      nameTd.appendChild(dot);
+      nameTd.appendChild(document.createTextNode(person));
       tr.appendChild(nameTd);
 
       for (let day = 1; day <= daysInMonth; day++) {
@@ -149,6 +169,8 @@ function renderCalendar() {
         if (isToday) td.classList.add('today');
         if (abs) {
           td.classList.add('absent');
+          td.style.setProperty('--person-fill', color.fill);
+          td.style.setProperty('--person-bg', color.bg);
           td.title = `${person} : du ${formatDateFr(abs.start)} au ${formatDateFr(abs.end)}`;
         }
         tr.appendChild(td);
@@ -175,13 +197,23 @@ function renderList() {
   }
 
   for (const abs of state.absences) {
+    const color = colorForPerson(abs.person);
     const li = document.createElement('li');
+    const dot = document.createElement('span');
+    dot.className = 'person-dot';
+    dot.style.background = color.fill;
     const span = document.createElement('span');
-    span.textContent = `${abs.person} — du ${formatDateFr(abs.start)} au ${formatDateFr(abs.end)}`;
+    span.className = 'absence-label';
+    const nameStrong = document.createElement('strong');
+    nameStrong.textContent = abs.person;
+    nameStrong.style.color = color.text;
+    span.appendChild(nameStrong);
+    span.appendChild(document.createTextNode(` — du ${formatDateFr(abs.start)} au ${formatDateFr(abs.end)}`));
     const btn = document.createElement('button');
     btn.className = 'delete-btn';
     btn.textContent = 'Supprimer';
     btn.addEventListener('click', () => deleteAbsence(abs.id));
+    li.appendChild(dot);
     li.appendChild(span);
     li.appendChild(btn);
     ul.appendChild(li);
