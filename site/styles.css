@@ -111,7 +111,6 @@ button:hover { background: var(--primary-hover); }
 .calendar-header button { padding: 0.4rem 0.8rem; }
 
 .calendar {
-  overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: 4px;
 }
@@ -120,6 +119,7 @@ button:hover { background: var(--primary-hover); }
   border-collapse: collapse;
   font-size: 0.8rem;
   width: 100%;
+  table-layout: fixed;
 }
 
 .absence-table th,
@@ -139,8 +139,7 @@ button:hover { background: var(--primary-hover); }
 
 .absence-table th.day-col,
 .absence-table td.day-cell {
-  width: 26px;
-  min-width: 26px;
+  width: auto;
 }
 
 .absence-table th.day-letter {
@@ -154,10 +153,15 @@ button:hover { background: var(--primary-hover); }
   left: 0;
   background: #f3f4f6;
   text-align: left;
-  padding: 0.4rem 0.75rem;
-  min-width: 130px;
+  padding: 0.4rem 0.5rem;
+  width: 110px;
+  min-width: 110px;
+  max-width: 110px;
   font-weight: 600;
   z-index: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .absence-table tbody td.person-col {
