@@ -1,8 +1,10 @@
 const STORAGE_KEY = 'team-absences-v1';
+const USER_KEY = 'team-absences-user-v1';
 const DAY_LETTERS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 
 const state = {
   absences: load(),
+  currentUser: localStorage.getItem(USER_KEY) || '',
   viewYear: new Date().getFullYear(),
   viewMonth: new Date().getMonth(),
 };
@@ -18,6 +20,29 @@ function load() {
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.absences));
+}
+
+function saveUser(name) {
+  state.currentUser = name.trim();
+  localStorage.setItem(USER_KEY, state.currentUser);
+  renderUserIdentity();
+  document.getElementById('person').value = state.currentUser;
+}
+
+function renderUserIdentity() {
+  const identity = document.getElementById('user-identity');
+  const setup = document.getElementById('user-setup');
+  const greeting = document.getElementById('user-greeting');
+  if (state.currentUser) {
+    greeting.textContent = `Connecté en tant que ${state.currentUser}`;
+    identity.hidden = false;
+    setup.hidden = true;
+    document.getElementById('person').value = state.currentUser;
+  } else {
+    identity.hidden = true;
+    setup.hidden = false;
+    document.getElementById('user-name-input').focus();
+  }
 }
 
 function uid() {
@@ -294,6 +319,22 @@ function render() {
   renderList();
 }
 
+document.getElementById('save-user').addEventListener('click', () => {
+  const name = document.getElementById('user-name-input').value.trim();
+  if (!name) return;
+  saveUser(name);
+});
+
+document.getElementById('user-name-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('save-user').click();
+});
+
+document.getElementById('change-user').addEventListener('click', () => {
+  state.currentUser = '';
+  localStorage.removeItem(USER_KEY);
+  renderUserIdentity();
+});
+
 document.getElementById('absence-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const person = document.getElementById('person').value;
@@ -311,7 +352,8 @@ document.getElementById('absence-form').addEventListener('submit', (e) => {
 
   addAbsence(person, start, end);
   e.target.reset();
-  document.getElementById('person').focus();
+  if (state.currentUser) document.getElementById('person').value = state.currentUser;
+  document.getElementById('start').focus();
 });
 
 document.getElementById('prev-month').addEventListener('click', () => {
@@ -341,4 +383,5 @@ document.getElementById('today').addEventListener('click', () => {
   renderCalendar();
 });
 
+renderUserIdentity();
 render();
