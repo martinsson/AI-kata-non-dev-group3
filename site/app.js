@@ -21,10 +21,40 @@
       { id: uid(), title: 'Certificat expirant dans 5 jours', description: 'Le certificat TLS de srv-web-01 expire le 2026-06-01.', type: 'warning', read: false, date: ago(120) },
     ],
     alerts: [
-      { id: uid(), message: 'Espace disque critique /srv/data — 95% utilisé', source: 'srv-db-01',  severity: 'critical', active: true,  date: ago(5) },
-      { id: uid(), message: 'CPU élevé en continu (>90%) depuis 15 min',       source: 'srv-web-03', severity: 'warning',  active: true,  date: ago(18) },
-      { id: uid(), message: 'Mise à jour de sécurité disponible : kernel 6.x', source: 'Système',   severity: 'info',     active: true,  date: ago(60) },
-      { id: uid(), message: 'Tentatives de connexion SSH répétées (>100/min)', source: 'Firewall',  severity: 'critical', active: false, date: ago(180) },
+      { id: uid(), message: 'Espace disque critique /srv/data — 95% utilisé', source: 'srv-db-01',  severity: 'critical', active: true,  date: ago(5),
+        checklist: [
+          { id: uid(), text: 'Identifier les fichiers volumineux (find / -size +1G)', done: true },
+          { id: uid(), text: 'Purger les logs anciens (journalctl --vacuum-time=7d)', done: true },
+          { id: uid(), text: 'Archiver les sauvegardes vers stockage externe', done: false },
+          { id: uid(), text: 'Confirmer retour sous 80% d\'utilisation', done: false },
+        ],
+        linkedItem: { type: 'equipment', name: 'Serveur DB-01', reference: 'SRV-DB-01-2021', expiry: '2027-12-31', notes: 'Rack A3 — datacenter Paris-Nord. Disque /srv/data : 2 To RAID 6.' }
+      },
+      { id: uid(), message: 'CPU élevé en continu (>90%) depuis 15 min', source: 'srv-web-03', severity: 'warning', active: true, date: ago(18),
+        checklist: [
+          { id: uid(), text: 'Identifier le processus consommateur (top / htop)', done: false },
+          { id: uid(), text: 'Vérifier les logs applicatifs', done: false },
+          { id: uid(), text: 'Redémarrer le service si nécessaire', done: false },
+        ],
+        linkedItem: null
+      },
+      { id: uid(), message: 'Passeport professionnel expirant dans 30 jours', source: 'RH / Conformité', severity: 'warning', active: true, date: ago(60),
+        checklist: [
+          { id: uid(), text: 'Vérifier la date d\'expiration exacte', done: true },
+          { id: uid(), text: 'Compléter le formulaire de renouvellement', done: false },
+          { id: uid(), text: 'Déposer le dossier en préfecture', done: false },
+          { id: uid(), text: 'Confirmer réception du nouveau passeport', done: false },
+        ],
+        linkedItem: { type: 'passport', name: 'Passeport — Dupont Jean', reference: 'FR-24-8821345', expiry: '2026-06-20', notes: 'Passeport biométrique. Renouvellement à initier 3 mois avant expiration.' }
+      },
+      { id: uid(), message: 'Tentatives de connexion SSH répétées (>100/min)', source: 'Firewall', severity: 'critical', active: false, date: ago(180),
+        checklist: [
+          { id: uid(), text: 'Bloquer l\'IP source dans le firewall', done: true },
+          { id: uid(), text: 'Analyser les logs d\'authentification', done: true },
+          { id: uid(), text: 'Notifier l\'équipe sécurité', done: true },
+        ],
+        linkedItem: null
+      },
     ],
     _tkSeq: 7,
   });
@@ -120,6 +150,7 @@
     el.innerHTML = '';
     ({ dashboard: renderDashboard, tasks: renderTasksList,
        notifications: renderNotifList, alerts: renderAlertsList,
+       'alert-detail': renderAlertDetail,
      })[tab.module]?.(el, tab);
   }
 
@@ -535,7 +566,9 @@
       }
       tbody.innerHTML = rows.map(a => `<tr class="alert-${a.active ? a.severity : ''}">
         <td class="td-check"><input type="checkbox" class="row-cb"/></td>
-        <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis"><strong>${esc(a.message)}</strong></td>
+        <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis">
+          <span class="record-link" data-open-alert-detail="${a.id}">${esc(a.message)}</span>
+        </td>
         <td style="color:var(--w-text-muted)">${esc(a.source||'—')}</td>
         <td>${severBadge(a.severity)}</td>
         <td>${a.active ? `<span class="badge b-active">Active</span>` : `<span class="badge b-resolved">Résolue</span>`}</td>
@@ -549,6 +582,14 @@
         </td>
       </tr>`).join('');
 
+      tbody.querySelectorAll('[data-open-alert-detail]').forEach(b =>
+        b.addEventListener('click', () => {
+          const a = S.alerts.find(x => x.id === b.dataset.openAlertDetail);
+          if (!a) return;
+          const tabId = 'alert-detail-' + a.id;
+          openTab('alert-detail', { id: tabId, label: a.message.slice(0, 32) + (a.message.length > 32 ? '…' : ''), icon: 'alert-tri', alertId: a.id });
+        })
+      );
       tbody.querySelectorAll('[data-dismiss]').forEach(b =>
         b.addEventListener('click', () => {
           const a = S.alerts.find(x => x.id === b.dataset.dismiss);
@@ -622,7 +663,279 @@
     rebuild();
   }
 
-  function openAlertForm(id) {
+  // ── Alert detail view ─────────────────────────────────
+  function renderAlertDetail(root, tab) {
+    const a = S.alerts.find(x => x.id === tab.alertId);
+    if (!a) { root.innerHTML = `<div style="padding:32px;color:var(--w-text-muted)">Alerte introuvable.</div>`; return; }
+    if (!a.checklist) a.checklist = [];
+
+    const rebuildChecklist = () => {
+      const done  = a.checklist.filter(i => i.done).length;
+      const total = a.checklist.length;
+      const pct   = total ? Math.round(done / total * 100) : 0;
+      const list  = root.querySelector('#checklist-items');
+      if (!list) return;
+
+      root.querySelector('#cl-progress-bar').style.width = pct + '%';
+      root.querySelector('#cl-progress-txt').textContent  = `${done} / ${total} étape${total !== 1 ? 's' : ''}`;
+
+      list.innerHTML = a.checklist.map(item => `
+        <div class="checklist-item ${item.done ? 'done' : ''}" data-clid="${item.id}">
+          <input type="checkbox" ${item.done ? 'checked' : ''} data-cl-check="${item.id}"/>
+          <span class="cl-text">${esc(item.text)}</span>
+          <button class="btn-icon del cl-del" data-cl-del="${item.id}" title="Supprimer">${svgIcon('trash', 12)}</button>
+        </div>`).join('') || `<div class="cl-empty">Aucune étape. Ajoutez-en une ci-dessous.</div>`;
+
+      list.querySelectorAll('[data-cl-check]').forEach(cb =>
+        cb.addEventListener('change', () => {
+          const item = a.checklist.find(i => i.id === cb.dataset.clCheck);
+          if (item) { item.done = cb.checked; save(); rebuildChecklist(); }
+        })
+      );
+      list.querySelectorAll('[data-cl-del]').forEach(b =>
+        b.addEventListener('click', () => {
+          a.checklist = a.checklist.filter(i => i.id !== b.dataset.clDel);
+          save(); rebuildChecklist();
+        })
+      );
+    };
+
+    const liTypes = { passport:'Passeport', certificate:'Certificat', license:'Licence / Habilitation', equipment:'Équipement', contract:'Contrat', other:'Autre' };
+    const li = a.linkedItem;
+
+    root.innerHTML = `
+    <div class="breadcrumb-bar">
+      <span class="bc-link" data-go="dashboard">Accueil</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-link" data-go="alerts">Alertes</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-current">${esc(a.message.slice(0,50))}${a.message.length>50?'…':''}</span>
+    </div>
+
+    <div class="record-header">
+      <div style="flex:1;min-width:0">
+        <div class="record-number">ALRT · ${fmtFull(a.date)}</div>
+        <div class="record-title">${esc(a.message)}</div>
+      </div>
+      <div class="record-actions">
+        ${a.active ? `<button class="btn btn-secondary btn-sm" id="det-dismiss">${svgIcon('check',13)} Acquitter</button>` : ''}
+        <button class="btn btn-primary btn-sm" id="det-edit">${svgIcon('edit',13)} Modifier</button>
+      </div>
+    </div>
+
+    <div class="form-body">
+
+      <!-- Section: Informations -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="form-section-title">${svgIcon('info',12)} Informations</div>
+        </div>
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Source</label>
+            <div class="field-value">${esc(a.source||'—')}</div>
+          </div>
+          <div class="form-field">
+            <label>Sévérité</label>
+            <div class="field-value">${severBadge(a.severity)}</div>
+          </div>
+          <div class="form-field">
+            <label>Statut</label>
+            <div class="field-value">${a.active ? `<span class="badge b-active">Active</span>` : `<span class="badge b-resolved">Résolue</span>`}</div>
+          </div>
+          <div class="form-field">
+            <label>Date</label>
+            <div class="field-value">${fmtFull(a.date)}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Checklist -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="form-section-title">${svgIcon('check-sq',12)} Checklist de résolution</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="cl-progress-wrap">
+              <div class="cl-progress-bar" id="cl-progress-bar" style="width:0%"></div>
+            </div>
+            <span id="cl-progress-txt" style="font-size:11px;color:var(--w-text-muted);white-space:nowrap">0 / 0</span>
+          </div>
+        </div>
+        <div id="checklist-items"></div>
+        <div class="cl-add-row">
+          <input type="text" id="cl-new-input" placeholder="Ajouter une étape…" style="flex:1"/>
+          <button class="btn btn-secondary btn-sm" id="cl-add-btn">${svgIcon('plus',13)} Ajouter</button>
+        </div>
+      </div>
+
+      <!-- Section: Élément lié -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="form-section-title">${svgIcon('link',12)} Élément lié</div>
+          <button class="btn btn-ghost btn-sm" id="li-edit-btn">${svgIcon('edit',13)} ${li ? 'Modifier' : 'Lier un élément'}</button>
+        </div>
+        <div id="linked-item-body">
+          ${li ? linkedItemHTML(li) : `<div class="li-empty">Aucun élément lié. Cliquez sur « Lier un élément » pour en associer un.</div>`}
+        </div>
+      </div>
+
+    </div>`;
+
+    // Breadcrumb
+    root.querySelectorAll('[data-go]').forEach(b =>
+      b.addEventListener('click', () => openTab(b.dataset.go))
+    );
+
+    // Dismiss
+    root.querySelector('#det-dismiss')?.addEventListener('click', () => {
+      a.active = false; save(); updateBadges();
+      const t = tabs.find(t => t.id === activeTabId);
+      if (t) renderContent();
+    });
+
+    // Edit
+    root.querySelector('#det-edit').addEventListener('click', () => openAlertForm(a.id, () => renderContent()));
+
+    // Checklist: add
+    const addBtn   = root.querySelector('#cl-add-btn');
+    const addInput = root.querySelector('#cl-new-input');
+    const doAdd = () => {
+      const text = addInput.value.trim();
+      if (!text) return;
+      a.checklist.push({ id: uid(), text, done: false });
+      addInput.value = '';
+      save(); rebuildChecklist();
+    };
+    addBtn.addEventListener('click', doAdd);
+    addInput.addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); });
+
+    // Linked item edit
+    root.querySelector('#li-edit-btn').addEventListener('click', () => openLinkedItemForm(a, () => {
+      root.querySelector('#linked-item-body').innerHTML =
+        a.linkedItem ? linkedItemHTML(a.linkedItem) : `<div class="li-empty">Aucun élément lié.</div>`;
+      wireOpenItemBtn(root, a);
+    }));
+
+    rebuildChecklist();
+    wireOpenItemBtn(root, a);
+  }
+
+  function linkedItemHTML(li) {
+    const icons = { passport:'🛂', certificate:'📜', license:'🪪', equipment:'🖥️', contract:'📄', other:'🔗' };
+    const labels = { passport:'Passeport', certificate:'Certificat', license:'Licence / Habilitation', equipment:'Équipement', contract:'Contrat', other:'Autre' };
+    const expDate = li.expiry ? new Date(li.expiry) : null;
+    const isExpiring = expDate && (expDate - Date.now()) < 60 * 24 * 3600000;
+    const isExpired  = expDate && expDate < new Date();
+    return `
+    <div class="linked-item-card">
+      <div class="li-icon-wrap">${icons[li.type] || '🔗'}</div>
+      <div class="li-details">
+        <div class="li-name">${esc(li.name)}</div>
+        <div class="li-meta">
+          <span class="li-chip">${labels[li.type] || li.type}</span>
+          ${li.reference ? `<span class="li-ref">Réf. ${esc(li.reference)}</span>` : ''}
+          ${li.expiry ? `<span class="li-expiry ${isExpired ? 'expired' : isExpiring ? 'expiring' : ''}">
+            ${isExpired ? '⚠ Expiré' : isExpiring ? '⚠ Expire le' : 'Expire le'} ${fmtShort(li.expiry)}
+          </span>` : ''}
+        </div>
+        ${li.notes ? `<div class="li-notes">${esc(li.notes)}</div>` : ''}
+      </div>
+      <div class="li-actions">
+        <button class="btn btn-primary btn-sm" id="btn-open-item">${svgIcon('external',13)} Ouvrir l'élément</button>
+      </div>
+    </div>`;
+  }
+
+  function wireOpenItemBtn(root, a) {
+    root.querySelector('#btn-open-item')?.addEventListener('click', () => {
+      if (!a.linkedItem) return;
+      openLinkedItemDetail(a.linkedItem);
+    });
+  }
+
+  function openLinkedItemDetail(li) {
+    const icons  = { passport:'🛂', certificate:'📜', license:'🪪', equipment:'🖥️', contract:'📄', other:'🔗' };
+    const labels = { passport:'Passeport', certificate:'Certificat', license:'Licence / Habilitation', equipment:'Équipement', contract:'Contrat', other:'Autre' };
+    const expDate = li.expiry ? new Date(li.expiry) : null;
+    const isExpired  = expDate && expDate < new Date();
+    const isExpiring = expDate && !isExpired && (expDate - Date.now()) < 60 * 24 * 3600000;
+
+    openModal(`${icons[li.type] || '🔗'} ${esc(li.name)}`, `
+      <div class="form-section" style="margin:0;border:none">
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Type</label>
+            <div class="field-value">${labels[li.type] || li.type}</div>
+          </div>
+          <div class="form-field">
+            <label>Référence</label>
+            <div class="field-value">${esc(li.reference || '—')}</div>
+          </div>
+          <div class="form-field">
+            <label>Date d'expiration</label>
+            <div class="field-value ${isExpired ? 'text-danger' : isExpiring ? 'text-warning' : ''}">
+              ${li.expiry ? fmtShort(li.expiry) + (isExpired ? ' — <strong>Expiré</strong>' : isExpiring ? ' — <strong>Bientôt expiré</strong>' : '') : '—'}
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Statut</label>
+            <div class="field-value">
+              ${isExpired
+                ? `<span class="badge b-critical">Expiré</span>`
+                : isExpiring
+                  ? `<span class="badge b-high">Expiration proche</span>`
+                  : `<span class="badge b-done">Valide</span>`}
+            </div>
+          </div>
+          ${li.notes ? `<div class="form-field full"><label>Notes</label><div class="field-value">${esc(li.notes)}</div></div>` : ''}
+        </div>
+      </div>
+    `, null);
+    // Override footer to show only Close
+    document.getElementById('modal-footer').innerHTML =
+      `<button class="btn btn-primary" id="modal-cancel">Fermer</button>`;
+    document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  }
+
+  function openLinkedItemForm(a, onSave) {
+    const li = a.linkedItem || {};
+    const liTypes = { passport:'Passeport', certificate:'Certificat', license:'Licence / Habilitation', equipment:'Équipement', contract:'Contrat', other:'Autre' };
+    openModal('Élément lié', `
+      <div class="form-section" style="margin:0;border:none">
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Type <span class="req">*</span></label>
+            <select name="type">
+              ${optsMap(liTypes, li.type || 'other')}
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Nom <span class="req">*</span></label>
+            <input type="text" name="name" value="${esc(li.name||'')}"/>
+          </div>
+          <div class="form-field">
+            <label>Référence</label>
+            <input type="text" name="reference" value="${esc(li.reference||'')}"/>
+          </div>
+          <div class="form-field">
+            <label>Date d'expiration</label>
+            <input type="date" name="expiry" value="${li.expiry||''}"/>
+          </div>
+          <div class="form-field full">
+            <label>Notes</label>
+            <textarea name="notes">${esc(li.notes||'')}</textarea>
+          </div>
+        </div>
+      </div>
+    `, () => {
+      const f = collectModal();
+      if (!f.name?.trim()) return alert('Le nom est obligatoire.');
+      a.linkedItem = f;
+      save(); closeModal(); onSave?.();
+    });
+  }
+
+  function openAlertForm(id, onDone) {
     const rec = id ? S.alerts.find(a => a.id === id) : null;
     const d = rec || {};
     openModal(rec ? 'Modifier l\'alerte' : 'Nouvelle alerte', `
@@ -656,8 +969,8 @@
       if (!f.message?.trim()) return alert('Le message est obligatoire.');
       f.active = f.active === 'true';
       if (rec) { Object.assign(rec, f); }
-      else { S.alerts.unshift({ id: uid(), ...f, date: new Date().toISOString() }); }
-      save(); closeModal(); renderContent(); updateBadges();
+      else { S.alerts.unshift({ id: uid(), ...f, checklist: [], linkedItem: null, date: new Date().toISOString() }); }
+      save(); closeModal(); onDone ? onDone() : renderContent(); updateBadges();
     });
   }
 
@@ -753,11 +1066,11 @@
   }
 
   function moduleLabel(m) {
-    return {dashboard:'Tableau de bord',tasks:'Tâches',notifications:'Notifications',alerts:'Alertes'}[m] || m;
+    return {dashboard:'Tableau de bord',tasks:'Tâches',notifications:'Notifications',alerts:'Alertes','alert-detail':'Détail alerte'}[m] || m;
   }
 
   function moduleIconName(m) {
-    return {dashboard:'grid',tasks:'check-sq',notifications:'bell',alerts:'alert-tri'}[m] || 'grid';
+    return {dashboard:'grid',tasks:'check-sq',notifications:'bell',alerts:'alert-tri','alert-detail':'alert-tri'}[m] || 'grid';
   }
 
   // ── Badges markup ─────────────────────────────────────
@@ -795,6 +1108,8 @@
       trash:      '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>',
       save:       '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>',
       info:       '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+      external:   '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>',
+      link:       '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
     };
     return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;display:inline-block;vertical-align:middle">${paths[name]||''}</svg>`;
   }
