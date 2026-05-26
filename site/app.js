@@ -6,12 +6,35 @@
   // ── Seed data ──────────────────────────────────────────
   const mkSeed = () => ({
     tasks: [
-      { id: uid(), number: 'TK0001001', title: 'Mettre à jour les certificats SSL', assignee: 'Alice Martin',  priority: 'critical', status: 'open',     due: '2026-06-01', description: 'Les certificats expirent dans 5 jours sur srv-web-01.' },
-      { id: uid(), number: 'TK0001002', title: 'Migrer la base vers PostgreSQL 16',  assignee: 'Bob Dupont',   priority: 'high',     status: 'progress', due: '2026-06-15', description: '' },
-      { id: uid(), number: 'TK0001003', title: 'Revue du code de sécurité',          assignee: 'Claire Leroy', priority: 'high',     status: 'open',     due: '2026-06-10', description: '' },
-      { id: uid(), number: 'TK0001004', title: 'Documenter l\'API REST v2',          assignee: 'David Petit',  priority: 'medium',   status: 'progress', due: '2026-06-20', description: '' },
-      { id: uid(), number: 'TK0001005', title: 'Corriger bug formulaire contact',    assignee: 'Alice Martin',  priority: 'low',      status: 'done',     due: '2026-05-20', description: '' },
-      { id: uid(), number: 'TK0001006', title: 'Audit accès Active Directory',       assignee: 'Bob Dupont',   priority: 'high',     status: 'open',     due: '2026-06-05', description: '' },
+      { id: uid(), number: 'TK0001001', title: 'Renouveler le passeport professionnel', assignee: 'Alice Martin', priority: 'critical', status: 'open', due: '2026-06-01', description: 'Le passeport biométrique expire dans 30 jours.',
+        checklist: [
+          { id: uid(), text: 'Vérifier la date d\'expiration exacte', done: true },
+          { id: uid(), text: 'Compléter le formulaire de renouvellement CERFA', done: true },
+          { id: uid(), text: 'Déposer le dossier en préfecture', done: false },
+          { id: uid(), text: 'Confirmer réception du nouveau passeport', done: false },
+        ],
+        linkedItem: { type: 'passport', name: 'Passeport — Martin Alice', reference: 'FR-24-8821345', expiry: '2026-06-20', notes: 'Passeport biométrique. Renouvellement à initier 3 mois avant expiration.' }
+      },
+      { id: uid(), number: 'TK0001002', title: 'Mettre à jour les certificats SSL', assignee: 'Bob Dupont', priority: 'high', status: 'progress', due: '2026-06-15', description: 'Certificats TLS expirant sur srv-web-01.',
+        checklist: [
+          { id: uid(), text: 'Générer la nouvelle CSR', done: true },
+          { id: uid(), text: 'Soumettre la demande à l\'autorité de certification', done: false },
+          { id: uid(), text: 'Installer le certificat sur le serveur', done: false },
+          { id: uid(), text: 'Vérifier le renouvellement automatique (Let\'s Encrypt)', done: false },
+        ],
+        linkedItem: { type: 'certificate', name: 'Certificat TLS srv-web-01', reference: 'CERT-2024-0391', expiry: '2026-06-15', notes: 'Wildcard *.acme.fr — émis par DigiCert.' }
+      },
+      { id: uid(), number: 'TK0001003', title: 'Revue du code de sécurité',     assignee: 'Claire Leroy', priority: 'high',   status: 'open',     due: '2026-06-10', description: '', checklist: [], linkedItem: null },
+      { id: uid(), number: 'TK0001004', title: 'Documenter l\'API REST v2',      assignee: 'David Petit',  priority: 'medium', status: 'progress', due: '2026-06-20', description: '', checklist: [], linkedItem: null },
+      { id: uid(), number: 'TK0001005', title: 'Corriger bug formulaire contact',assignee: 'Alice Martin', priority: 'low',    status: 'done',     due: '2026-05-20', description: '', checklist: [], linkedItem: null },
+      { id: uid(), number: 'TK0001006', title: 'Renouveler la licence logicielle', assignee: 'Bob Dupont', priority: 'high',   status: 'open',     due: '2026-06-05', description: 'Licence annuelle Adobe CC — 12 postes.',
+        checklist: [
+          { id: uid(), text: 'Obtenir le devis de renouvellement', done: true },
+          { id: uid(), text: 'Validation budgétaire par le responsable', done: false },
+          { id: uid(), text: 'Passer la commande sur le portail Adobe', done: false },
+        ],
+        linkedItem: { type: 'license', name: 'Adobe Creative Cloud — 12 postes', reference: 'LIC-ADOBE-2025-012', expiry: '2026-06-05', notes: 'Contrat annuel. Renouvellement à initier 30 jours avant expiration.' }
+      },
     ],
     notifications: [
       { id: uid(), title: 'Déploiement v2.4.1 réussi',        description: 'La version 2.4.1 a été déployée en production avec succès.', type: 'success', read: false, date: ago(2) },
@@ -21,40 +44,10 @@
       { id: uid(), title: 'Certificat expirant dans 5 jours', description: 'Le certificat TLS de srv-web-01 expire le 2026-06-01.', type: 'warning', read: false, date: ago(120) },
     ],
     alerts: [
-      { id: uid(), message: 'Espace disque critique /srv/data — 95% utilisé', source: 'srv-db-01',  severity: 'critical', active: true,  date: ago(5),
-        checklist: [
-          { id: uid(), text: 'Identifier les fichiers volumineux (find / -size +1G)', done: true },
-          { id: uid(), text: 'Purger les logs anciens (journalctl --vacuum-time=7d)', done: true },
-          { id: uid(), text: 'Archiver les sauvegardes vers stockage externe', done: false },
-          { id: uid(), text: 'Confirmer retour sous 80% d\'utilisation', done: false },
-        ],
-        linkedItem: { type: 'equipment', name: 'Serveur DB-01', reference: 'SRV-DB-01-2021', expiry: '2027-12-31', notes: 'Rack A3 — datacenter Paris-Nord. Disque /srv/data : 2 To RAID 6.' }
-      },
-      { id: uid(), message: 'CPU élevé en continu (>90%) depuis 15 min', source: 'srv-web-03', severity: 'warning', active: true, date: ago(18),
-        checklist: [
-          { id: uid(), text: 'Identifier le processus consommateur (top / htop)', done: false },
-          { id: uid(), text: 'Vérifier les logs applicatifs', done: false },
-          { id: uid(), text: 'Redémarrer le service si nécessaire', done: false },
-        ],
-        linkedItem: null
-      },
-      { id: uid(), message: 'Passeport professionnel expirant dans 30 jours', source: 'RH / Conformité', severity: 'warning', active: true, date: ago(60),
-        checklist: [
-          { id: uid(), text: 'Vérifier la date d\'expiration exacte', done: true },
-          { id: uid(), text: 'Compléter le formulaire de renouvellement', done: false },
-          { id: uid(), text: 'Déposer le dossier en préfecture', done: false },
-          { id: uid(), text: 'Confirmer réception du nouveau passeport', done: false },
-        ],
-        linkedItem: { type: 'passport', name: 'Passeport — Dupont Jean', reference: 'FR-24-8821345', expiry: '2026-06-20', notes: 'Passeport biométrique. Renouvellement à initier 3 mois avant expiration.' }
-      },
-      { id: uid(), message: 'Tentatives de connexion SSH répétées (>100/min)', source: 'Firewall', severity: 'critical', active: false, date: ago(180),
-        checklist: [
-          { id: uid(), text: 'Bloquer l\'IP source dans le firewall', done: true },
-          { id: uid(), text: 'Analyser les logs d\'authentification', done: true },
-          { id: uid(), text: 'Notifier l\'équipe sécurité', done: true },
-        ],
-        linkedItem: null
-      },
+      { id: uid(), message: 'Espace disque critique /srv/data — 95% utilisé', source: 'srv-db-01',  severity: 'critical', active: true,  date: ago(5) },
+      { id: uid(), message: 'CPU élevé en continu (>90%) depuis 15 min',      source: 'srv-web-03', severity: 'warning',  active: true,  date: ago(18) },
+      { id: uid(), message: 'Mise à jour de sécurité disponible : kernel 6.x',source: 'Système',   severity: 'info',     active: true,  date: ago(60) },
+      { id: uid(), message: 'Tentatives de connexion SSH répétées (>100/min)', source: 'Firewall',  severity: 'critical', active: false, date: ago(180) },
     ],
     _tkSeq: 7,
   });
@@ -150,7 +143,7 @@
     el.innerHTML = '';
     ({ dashboard: renderDashboard, tasks: renderTasksList,
        notifications: renderNotifList, alerts: renderAlertsList,
-       'alert-detail': renderAlertDetail,
+       'task-detail': renderTaskDetail,
      })[tab.module]?.(el, tab);
   }
 
@@ -241,7 +234,11 @@
     root.querySelectorAll('[data-open-module]').forEach(b =>
       b.addEventListener('click', () => openTab(b.dataset.openModule)));
     root.querySelectorAll('[data-open-task]').forEach(b =>
-      b.addEventListener('click', () => openTaskForm(b.dataset.openTask)));
+      b.addEventListener('click', () => {
+        const t = S.tasks.find(x => x.id === b.dataset.openTask);
+        if (!t) return;
+        openTab('task-detail', { id: 'task-detail-' + t.id, label: t.number, icon: 'check-sq', taskId: t.id });
+      }));
     wireNotifActions(root);
   }
 
@@ -271,8 +268,8 @@
       }
       tbody.innerHTML = rows.map(t => `<tr data-id="${t.id}" class="${t.status === 'done' ? 'done-row' : ''}">
         <td class="td-check"><input type="checkbox" class="row-cb" data-id="${t.id}"/></td>
-        <td><span class="record-link" data-open-task="${t.id}">${esc(t.number)}</span></td>
-        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis">${esc(t.title)}</td>
+        <td><span class="record-link" data-open-task-detail="${t.id}">${esc(t.number)}</span></td>
+        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;cursor:pointer" class="record-link" data-open-task-detail="${t.id}">${esc(t.title)}</td>
         <td>${esc(t.assignee || '—')}</td>
         <td>${prioBadge(t.priority)}</td>
         <td>${statusBadge(t.status)}</td>
@@ -285,8 +282,13 @@
         </td>
       </tr>`).join('');
 
-      tbody.querySelectorAll('[data-open-task]').forEach(b =>
-        b.addEventListener('click', () => openTaskForm(b.dataset.openTask)));
+      tbody.querySelectorAll('[data-open-task-detail]').forEach(b =>
+        b.addEventListener('click', () => {
+          const t = S.tasks.find(x => x.id === b.dataset.openTaskDetail);
+          if (!t) return;
+          openTab('task-detail', { id: 'task-detail-' + t.id, label: t.number, icon: 'check-sq', taskId: t.id });
+        })
+      );
       tbody.querySelectorAll('[data-edit-task]').forEach(b =>
         b.addEventListener('click', () => openTaskForm(b.dataset.editTask)));
       tbody.querySelectorAll('[data-del-task]').forEach(b =>
@@ -375,7 +377,7 @@
   }
 
   // ── Task form (modal) ─────────────────────────────────
-  function openTaskForm(id) {
+  function openTaskForm(id, onDone) {
     const rec = id ? S.tasks.find(t => t.id === id) : null;
     const d = rec || {};
     openModal(rec ? `Modifier ${rec.number}` : 'Nouvelle tâche', `
@@ -423,8 +425,7 @@
         S.tasks.push({ id: uid(), number: num, ...f });
       }
       save(); closeModal();
-      const t = tabs.find(t => t.id === activeTabId);
-      if (t) renderContent();
+      onDone ? onDone() : renderContent();
       updateBadges();
     });
   }
@@ -663,24 +664,25 @@
     rebuild();
   }
 
-  // ── Alert detail view ─────────────────────────────────
-  function renderAlertDetail(root, tab) {
-    const a = S.alerts.find(x => x.id === tab.alertId);
-    if (!a) { root.innerHTML = `<div style="padding:32px;color:var(--w-text-muted)">Alerte introuvable.</div>`; return; }
-    if (!a.checklist) a.checklist = [];
+  // ── Task detail view ──────────────────────────────────
+  function renderTaskDetail(root, tab) {
+    const t = S.tasks.find(x => x.id === tab.taskId);
+    if (!t) { root.innerHTML = `<div style="padding:32px;color:var(--w-text-muted)">Tâche introuvable.</div>`; return; }
+    if (!t.checklist)  t.checklist  = [];
+    if (!('linkedItem' in t)) t.linkedItem = null;
 
     const rebuildChecklist = () => {
-      const done  = a.checklist.filter(i => i.done).length;
-      const total = a.checklist.length;
+      const done  = t.checklist.filter(i => i.done).length;
+      const total = t.checklist.length;
       const pct   = total ? Math.round(done / total * 100) : 0;
       const list  = root.querySelector('#checklist-items');
       if (!list) return;
 
       root.querySelector('#cl-progress-bar').style.width = pct + '%';
-      root.querySelector('#cl-progress-txt').textContent  = `${done} / ${total} étape${total !== 1 ? 's' : ''}`;
+      root.querySelector('#cl-progress-txt').textContent = `${done} / ${total} étape${total !== 1 ? 's' : ''}`;
 
-      list.innerHTML = a.checklist.map(item => `
-        <div class="checklist-item ${item.done ? 'done' : ''}" data-clid="${item.id}">
+      list.innerHTML = t.checklist.map(item => `
+        <div class="checklist-item ${item.done ? 'done' : ''}">
           <input type="checkbox" ${item.done ? 'checked' : ''} data-cl-check="${item.id}"/>
           <span class="cl-text">${esc(item.text)}</span>
           <button class="btn-icon del cl-del" data-cl-del="${item.id}" title="Supprimer">${svgIcon('trash', 12)}</button>
@@ -688,72 +690,67 @@
 
       list.querySelectorAll('[data-cl-check]').forEach(cb =>
         cb.addEventListener('change', () => {
-          const item = a.checklist.find(i => i.id === cb.dataset.clCheck);
+          const item = t.checklist.find(i => i.id === cb.dataset.clCheck);
           if (item) { item.done = cb.checked; save(); rebuildChecklist(); }
         })
       );
       list.querySelectorAll('[data-cl-del]').forEach(b =>
         b.addEventListener('click', () => {
-          a.checklist = a.checklist.filter(i => i.id !== b.dataset.clDel);
+          t.checklist = t.checklist.filter(i => i.id !== b.dataset.clDel);
           save(); rebuildChecklist();
         })
       );
     };
 
-    const liTypes = { passport:'Passeport', certificate:'Certificat', license:'Licence / Habilitation', equipment:'Équipement', contract:'Contrat', other:'Autre' };
-    const li = a.linkedItem;
-
     root.innerHTML = `
     <div class="breadcrumb-bar">
       <span class="bc-link" data-go="dashboard">Accueil</span>
       <span class="bc-sep">›</span>
-      <span class="bc-link" data-go="alerts">Alertes</span>
+      <span class="bc-link" data-go="tasks">Tâches</span>
       <span class="bc-sep">›</span>
-      <span class="bc-current">${esc(a.message.slice(0,50))}${a.message.length>50?'…':''}</span>
+      <span class="bc-current">${esc(t.number)}</span>
     </div>
 
     <div class="record-header">
       <div style="flex:1;min-width:0">
-        <div class="record-number">ALRT · ${fmtFull(a.date)}</div>
-        <div class="record-title">${esc(a.message)}</div>
+        <div class="record-number">${esc(t.number)} · Assigné à ${esc(t.assignee || '—')}</div>
+        <div class="record-title">${esc(t.title)}</div>
       </div>
       <div class="record-actions">
-        ${a.active ? `<button class="btn btn-secondary btn-sm" id="det-dismiss">${svgIcon('check',13)} Acquitter</button>` : ''}
-        <button class="btn btn-primary btn-sm" id="det-edit">${svgIcon('edit',13)} Modifier</button>
+        <button class="btn btn-secondary btn-sm" id="det-edit">${svgIcon('edit',13)} Modifier</button>
       </div>
     </div>
 
     <div class="form-body">
 
-      <!-- Section: Informations -->
       <div class="form-section">
         <div class="form-section-header">
           <div class="form-section-title">${svgIcon('info',12)} Informations</div>
         </div>
         <div class="form-grid">
           <div class="form-field">
-            <label>Source</label>
-            <div class="field-value">${esc(a.source||'—')}</div>
-          </div>
-          <div class="form-field">
-            <label>Sévérité</label>
-            <div class="field-value">${severBadge(a.severity)}</div>
+            <label>Priorité</label>
+            <div class="field-value">${prioBadge(t.priority)}</div>
           </div>
           <div class="form-field">
             <label>Statut</label>
-            <div class="field-value">${a.active ? `<span class="badge b-active">Active</span>` : `<span class="badge b-resolved">Résolue</span>`}</div>
+            <div class="field-value">${statusBadge(t.status)}</div>
           </div>
           <div class="form-field">
-            <label>Date</label>
-            <div class="field-value">${fmtFull(a.date)}</div>
+            <label>Échéance</label>
+            <div class="field-value ${isOverdue(t.due) && t.status !== 'done' ? 'text-danger' : ''}">${fmtShort(t.due)||'—'}</div>
           </div>
+          <div class="form-field">
+            <label>Assigné à</label>
+            <div class="field-value">${esc(t.assignee||'—')}</div>
+          </div>
+          ${t.description ? `<div class="form-field full"><label>Description</label><div class="field-value">${esc(t.description)}</div></div>` : ''}
         </div>
       </div>
 
-      <!-- Section: Checklist -->
       <div class="form-section">
         <div class="form-section-header">
-          <div class="form-section-title">${svgIcon('check-sq',12)} Checklist de résolution</div>
+          <div class="form-section-title">${svgIcon('check-sq',12)} Checklist</div>
           <div style="display:flex;align-items:center;gap:10px">
             <div class="cl-progress-wrap">
               <div class="cl-progress-bar" id="cl-progress-bar" style="width:0%"></div>
@@ -763,61 +760,53 @@
         </div>
         <div id="checklist-items"></div>
         <div class="cl-add-row">
-          <input type="text" id="cl-new-input" placeholder="Ajouter une étape…" style="flex:1"/>
+          <input type="text" id="cl-new-input" placeholder="Ajouter une étape…"/>
           <button class="btn btn-secondary btn-sm" id="cl-add-btn">${svgIcon('plus',13)} Ajouter</button>
         </div>
       </div>
 
-      <!-- Section: Élément lié -->
       <div class="form-section">
         <div class="form-section-header">
           <div class="form-section-title">${svgIcon('link',12)} Élément lié</div>
-          <button class="btn btn-ghost btn-sm" id="li-edit-btn">${svgIcon('edit',13)} ${li ? 'Modifier' : 'Lier un élément'}</button>
+          <button class="btn btn-ghost btn-sm" id="li-edit-btn">${svgIcon('edit',13)} ${t.linkedItem ? 'Modifier' : 'Lier un élément'}</button>
         </div>
         <div id="linked-item-body">
-          ${li ? linkedItemHTML(li) : `<div class="li-empty">Aucun élément lié. Cliquez sur « Lier un élément » pour en associer un.</div>`}
+          ${t.linkedItem ? linkedItemHTML(t.linkedItem) : `<div class="li-empty">Aucun élément lié. Cliquez sur « Lier un élément ».</div>`}
         </div>
       </div>
 
     </div>`;
 
-    // Breadcrumb
     root.querySelectorAll('[data-go]').forEach(b =>
       b.addEventListener('click', () => openTab(b.dataset.go))
     );
 
-    // Dismiss
-    root.querySelector('#det-dismiss')?.addEventListener('click', () => {
-      a.active = false; save(); updateBadges();
-      const t = tabs.find(t => t.id === activeTabId);
-      if (t) renderContent();
-    });
+    root.querySelector('#det-edit').addEventListener('click', () =>
+      openTaskForm(t.id, () => renderContent())
+    );
 
-    // Edit
-    root.querySelector('#det-edit').addEventListener('click', () => openAlertForm(a.id, () => renderContent()));
-
-    // Checklist: add
     const addBtn   = root.querySelector('#cl-add-btn');
     const addInput = root.querySelector('#cl-new-input');
     const doAdd = () => {
       const text = addInput.value.trim();
       if (!text) return;
-      a.checklist.push({ id: uid(), text, done: false });
+      t.checklist.push({ id: uid(), text, done: false });
       addInput.value = '';
       save(); rebuildChecklist();
     };
     addBtn.addEventListener('click', doAdd);
     addInput.addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); });
 
-    // Linked item edit
-    root.querySelector('#li-edit-btn').addEventListener('click', () => openLinkedItemForm(a, () => {
-      root.querySelector('#linked-item-body').innerHTML =
-        a.linkedItem ? linkedItemHTML(a.linkedItem) : `<div class="li-empty">Aucun élément lié.</div>`;
-      wireOpenItemBtn(root, a);
-    }));
+    root.querySelector('#li-edit-btn').addEventListener('click', () =>
+      openLinkedItemForm(t, () => {
+        root.querySelector('#linked-item-body').innerHTML =
+          t.linkedItem ? linkedItemHTML(t.linkedItem) : `<div class="li-empty">Aucun élément lié.</div>`;
+        wireOpenItemBtn(root, t);
+      })
+    );
 
     rebuildChecklist();
-    wireOpenItemBtn(root, a);
+    wireOpenItemBtn(root, t);
   }
 
   function linkedItemHTML(li) {
@@ -1066,11 +1055,11 @@
   }
 
   function moduleLabel(m) {
-    return {dashboard:'Tableau de bord',tasks:'Tâches',notifications:'Notifications',alerts:'Alertes','alert-detail':'Détail alerte'}[m] || m;
+    return {dashboard:'Tableau de bord',tasks:'Tâches',notifications:'Notifications',alerts:'Alertes','task-detail':'Détail tâche'}[m] || m;
   }
 
   function moduleIconName(m) {
-    return {dashboard:'grid',tasks:'check-sq',notifications:'bell',alerts:'alert-tri','alert-detail':'alert-tri'}[m] || 'grid';
+    return {dashboard:'grid',tasks:'check-sq',notifications:'bell',alerts:'alert-tri','task-detail':'check-sq'}[m] || 'grid';
   }
 
   // ── Badges markup ─────────────────────────────────────
