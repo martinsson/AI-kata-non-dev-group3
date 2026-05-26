@@ -3,344 +3,108 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>ServiceDesk — Gestion opérationnelle</title>
+  <title>ServiceDesk Workspace</title>
   <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
-<div class="layout">
+<div class="workspace">
 
-  <!-- ── Header ───────────────────────────────────────────── -->
-  <header class="header">
+  <!-- ── Global Header ──────────────────────────────────── -->
+  <header class="now-header">
+    <button class="header-hamburger" id="nav-toggle-btn" aria-label="Toggle navigation">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+
     <a class="header-brand" href="#">
       <div class="brand-logo">SD</div>
       <span class="brand-name">ServiceDesk</span>
     </a>
 
-    <div class="header-search">
-      <svg class="header-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" placeholder="Rechercher…" id="global-search"/>
+    <div class="global-search">
+      <svg class="global-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Rechercher dans ServiceDesk…" id="header-search"/>
     </div>
 
-    <div class="header-actions">
-      <button class="header-btn" id="notif-header-btn" title="Notifications">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        <span class="badge-dot" id="notif-badge-dot" style="display:none"></span>
+    <div class="header-right">
+      <button class="header-icon-btn" id="btn-notif" title="Notifications">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-badge" id="notif-badge" style="display:none"></span>
       </button>
-      <button class="header-btn" id="alert-header-btn" title="Alertes">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m10.29 3.86-7 12A1 1 0 0 0 4 17.5h16a1 1 0 0 0 .87-1.5l-7-12a1 1 0 0 0-1.74 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        <span class="badge-dot" id="alert-badge-dot" style="display:none;background:#e07b00"></span>
+      <button class="header-icon-btn" id="btn-alerts" title="Alertes">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m10.29 3.86-7 12A1 1 0 0 0 4 17.5h16a1 1 0 0 0 .87-1.5l-7-12a1 1 0 0 0-1.74 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span class="notif-badge" id="alert-badge" style="display:none;background:#e07b00"></span>
       </button>
-      <div class="header-avatar" title="Admin">AD</div>
+      <button class="header-icon-btn" title="Paramètres">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+      <div class="header-avatar" title="Administrateur">AD</div>
     </div>
   </header>
 
-  <div class="body-area">
+  <div class="workspace-body">
 
-    <!-- ── Sidebar ──────────────────────────────────────────── -->
-    <aside class="sidebar">
-      <div class="nav-section">
-        <p class="nav-label">Principal</p>
-        <a class="nav-item active" data-view="dashboard">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          Tableau de bord
-        </a>
-      </div>
-      <div class="nav-section">
-        <p class="nav-label">Travail</p>
-        <a class="nav-item" data-view="tasks">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          Tâches
-          <span class="nav-count" id="nav-tasks-count" style="display:none">0</span>
-        </a>
-        <a class="nav-item" data-view="notifications">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          Notifications
-          <span class="nav-count" id="nav-notif-count" style="display:none">0</span>
-        </a>
-        <a class="nav-item" data-view="alerts">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m10.29 3.86-7 12A1 1 0 0 0 4 17.5h16a1 1 0 0 0 .87-1.5l-7-12a1 1 0 0 0-1.74 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          Alertes
-          <span class="nav-count danger" id="nav-alerts-count" style="display:none">0</span>
-        </a>
-      </div>
-    </aside>
+    <!-- ── App Navigator ──────────────────────────────────── -->
+    <nav class="app-nav" id="app-nav">
+      <div class="nav-section-title">Applications</div>
 
-    <!-- ── Main ─────────────────────────────────────────────── -->
-    <main class="main" id="app"></main>
+      <button class="nav-module active" data-module="dashboard" title="Tableau de bord">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span class="nav-module-label">Tableau de bord</span>
+      </button>
+
+      <div class="nav-section-title">Gestion du travail</div>
+
+      <button class="nav-module" data-module="tasks" title="Tâches">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span class="nav-module-label">Tâches</span>
+        <span class="nav-module-badge" id="nav-badge-tasks" style="display:none">0</span>
+      </button>
+
+      <button class="nav-module" data-module="notifications" title="Notifications">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="nav-module-label">Notifications</span>
+        <span class="nav-module-badge" id="nav-badge-notifs" style="display:none">0</span>
+      </button>
+
+      <button class="nav-module" data-module="alerts" title="Alertes">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m10.29 3.86-7 12A1 1 0 0 0 4 17.5h16a1 1 0 0 0 .87-1.5l-7-12a1 1 0 0 0-1.74 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span class="nav-module-label">Alertes</span>
+        <span class="nav-module-badge danger" id="nav-badge-alerts" style="display:none">0</span>
+      </button>
+
+      <button class="nav-toggle" id="nav-expand-btn" title="Réduire">
+        <svg width="15" height="15" id="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </nav>
+
+    <!-- ── Workspace Main ─────────────────────────────────── -->
+    <div class="workspace-main">
+
+      <!-- Tab strip -->
+      <div class="tab-strip" id="tab-strip"></div>
+
+      <!-- Content -->
+      <div class="workspace-content" id="workspace-content"></div>
+
+    </div>
   </div>
 </div>
 
 <!-- ── Modal ──────────────────────────────────────────────── -->
-<div class="modal-backdrop hidden" id="modal">
-  <div class="modal-card">
-    <div class="modal-header">
-      <h2 class="modal-title" id="modal-title">Formulaire</h2>
+<div class="modal-overlay hidden" id="modal">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <span class="modal-hd-title" id="modal-title">Formulaire</span>
       <button class="btn-icon" id="modal-close">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
-    <div class="modal-body" id="modal-body"></div>
-    <div class="modal-footer" id="modal-footer"></div>
+    <div class="modal-bd" id="modal-body"></div>
+    <div class="modal-ft" id="modal-footer"></div>
   </div>
 </div>
-
-<!-- ── Templates ─────────────────────────────────────────── -->
-
-<template id="tpl-dashboard">
-  <div>
-    <div class="page-header">
-      <div>
-        <div class="page-title">Tableau de bord</div>
-        <div class="page-subtitle">Vue d'ensemble opérationnelle</div>
-      </div>
-    </div>
-
-    <div class="stats-row">
-      <div class="stat-card accent-blue">
-        <div class="stat-icon blue">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        </div>
-        <div class="stat-info">
-          <div class="stat-value" data-stat="totalTasks">0</div>
-          <div class="stat-label">Tâches totales</div>
-        </div>
-      </div>
-      <div class="stat-card accent-orange">
-        <div class="stat-icon orange">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        </div>
-        <div class="stat-info">
-          <div class="stat-value" data-stat="openTasks">0</div>
-          <div class="stat-label">En cours / Ouvertes</div>
-        </div>
-      </div>
-      <div class="stat-card accent-green">
-        <div class="stat-icon green">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        </div>
-        <div class="stat-info">
-          <div class="stat-value" data-stat="doneTasks">0</div>
-          <div class="stat-label">Terminées</div>
-        </div>
-      </div>
-      <div class="stat-card accent-red">
-        <div class="stat-icon red">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m10.29 3.86-7 12A1 1 0 0 0 4 17.5h16a1 1 0 0 0 .87-1.5l-7-12a1 1 0 0 0-1.74 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        </div>
-        <div class="stat-info">
-          <div class="stat-value" data-stat="activeAlerts">0</div>
-          <div class="stat-label">Alertes actives</div>
-        </div>
-      </div>
-      <div class="stat-card accent-blue">
-        <div class="stat-icon blue">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        </div>
-        <div class="stat-info">
-          <div class="stat-value" data-stat="unreadNotifs">0</div>
-          <div class="stat-label">Notifs non lues</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="dash-grid">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/></svg>
-            Tâches récentes
-          </div>
-          <a class="btn btn-secondary" style="font-size:12px;padding:4px 10px" data-view-link="tasks">Voir tout</a>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Titre</th><th>Priorité</th><th>Statut</th></tr></thead>
-            <tbody id="dash-tasks-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m10.29 3.86-7 12A1 1 0 0 0 4 17.5h16a1 1 0 0 0 .87-1.5l-7-12a1 1 0 0 0-1.74 0z"/></svg>
-            Alertes actives
-          </div>
-          <a class="btn btn-secondary" style="font-size:12px;padding:4px 10px" data-view-link="alerts">Voir tout</a>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Message</th><th>Sévérité</th><th>Date</th></tr></thead>
-            <tbody id="dash-alerts-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card" style="grid-column: 1 / -1">
-        <div class="card-header">
-          <div class="card-title">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
-            Notifications récentes
-          </div>
-          <a class="btn btn-secondary" style="font-size:12px;padding:4px 10px" data-view-link="notifications">Voir tout</a>
-        </div>
-        <div id="dash-notifs-list"></div>
-      </div>
-    </div>
-  </div>
-</template>
-
-<template id="tpl-tasks">
-  <div>
-    <div class="page-header">
-      <div>
-        <div class="page-title">Tâches</div>
-        <div class="page-subtitle">Gestion et suivi des tâches</div>
-      </div>
-      <div class="btn-group">
-        <button class="btn btn-primary" data-action="add-task">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Nouvelle tâche
-        </button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="filters-bar">
-        <div class="filter-group">
-          <label class="filter-label">Statut</label>
-          <select data-filter="status">
-            <option value="">Tous</option>
-            <option value="open">Ouverte</option>
-            <option value="progress">En cours</option>
-            <option value="done">Terminée</option>
-            <option value="cancelled">Annulée</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label class="filter-label">Priorité</label>
-          <select data-filter="priority">
-            <option value="">Toutes</option>
-            <option value="critical">Critique</option>
-            <option value="high">Haute</option>
-            <option value="medium">Moyenne</option>
-            <option value="low">Basse</option>
-          </select>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Titre</th>
-              <th>Assigné à</th>
-              <th>Priorité</th>
-              <th>Statut</th>
-              <th>Échéance</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="tasks-body"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</template>
-
-<template id="tpl-notifications">
-  <div>
-    <div class="page-header">
-      <div>
-        <div class="page-title">Notifications</div>
-        <div class="page-subtitle">Centre de notifications</div>
-      </div>
-      <div class="btn-group">
-        <button class="btn btn-secondary" data-action="mark-all-read">Tout marquer comme lu</button>
-        <button class="btn btn-primary" data-action="add-notif">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Nouvelle notification
-        </button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="filters-bar">
-        <div class="filter-group">
-          <label class="filter-label">Statut</label>
-          <select data-filter="read">
-            <option value="">Toutes</option>
-            <option value="unread">Non lues</option>
-            <option value="read">Lues</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label class="filter-label">Type</label>
-          <select data-filter="type">
-            <option value="">Tous</option>
-            <option value="info">Info</option>
-            <option value="warning">Avertissement</option>
-            <option value="error">Erreur</option>
-            <option value="success">Succès</option>
-          </select>
-        </div>
-      </div>
-      <div id="notifs-list"></div>
-    </div>
-  </div>
-</template>
-
-<template id="tpl-alerts">
-  <div>
-    <div class="page-header">
-      <div>
-        <div class="page-title">Alertes</div>
-        <div class="page-subtitle">Surveillance et gestion des alertes système</div>
-      </div>
-      <div class="btn-group">
-        <button class="btn btn-secondary" data-action="dismiss-all">Tout acquitter</button>
-        <button class="btn btn-primary" data-action="add-alert">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Nouvelle alerte
-        </button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="filters-bar">
-        <div class="filter-group">
-          <label class="filter-label">Sévérité</label>
-          <select data-filter="severity">
-            <option value="">Toutes</option>
-            <option value="critical">Critique</option>
-            <option value="warning">Avertissement</option>
-            <option value="info">Info</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label class="filter-label">Statut</label>
-          <select data-filter="active">
-            <option value="">Tous</option>
-            <option value="true">Active</option>
-            <option value="false">Acquittée</option>
-          </select>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Message</th>
-              <th>Source</th>
-              <th>Sévérité</th>
-              <th>Statut</th>
-              <th>Date</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="alerts-body"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</template>
 
 <script src="app.js"></script>
 </body>
