@@ -141,10 +141,13 @@
     if (!tab) return;
     const el = document.getElementById('workspace-content');
     el.innerHTML = '';
-    ({ dashboard: renderDashboard, tasks: renderTasksList,
-       notifications: renderNotifList, alerts: renderAlertsList,
-       'task-detail': renderTaskDetail,
-     })[tab.module]?.(el, tab);
+    if (tab.module === 'tasks' && tab.taskId) {
+      renderTaskDetail(el, tab);
+    } else {
+      ({ dashboard: renderDashboard, tasks: renderTasksList,
+         notifications: renderNotifList, alerts: renderAlertsList,
+       })[tab.module]?.(el, tab);
+    }
   }
 
   // ── Dashboard ─────────────────────────────────────────
@@ -237,7 +240,9 @@
       b.addEventListener('click', () => {
         const t = S.tasks.find(x => x.id === b.dataset.openTask);
         if (!t) return;
-        openTab('task-detail', { id: 'task-detail-' + t.id, label: t.number, icon: 'check-sq', taskId: t.id });
+        const existing = tabs.find(x => x.id === 'tasks');
+        if (existing) { existing.taskId = t.id; activateTab('tasks'); }
+        else { tabs.push({ id: 'tasks', module: 'tasks', label: 'Tâches', icon: 'check-sq', taskId: t.id }); activateTab('tasks'); }
       }));
     wireNotifActions(root);
   }
@@ -286,7 +291,8 @@
         b.addEventListener('click', () => {
           const t = S.tasks.find(x => x.id === b.dataset.openTaskDetail);
           if (!t) return;
-          openTab('task-detail', { id: 'task-detail-' + t.id, label: t.number, icon: 'check-sq', taskId: t.id });
+          const tab = tabs.find(x => x.id === activeTabId);
+          if (tab) { tab.taskId = t.id; renderContent(); }
         })
       );
       tbody.querySelectorAll('[data-edit-task]').forEach(b =>
@@ -778,7 +784,13 @@
     </div>`;
 
     root.querySelectorAll('[data-go]').forEach(b =>
-      b.addEventListener('click', () => openTab(b.dataset.go))
+      b.addEventListener('click', () => {
+        if (b.dataset.go === 'tasks') {
+          const tab = tabs.find(x => x.id === activeTabId);
+          if (tab && tab.module === 'tasks') { delete tab.taskId; renderContent(); return; }
+        }
+        openTab(b.dataset.go);
+      })
     );
 
     root.querySelector('#det-edit').addEventListener('click', () =>
@@ -1055,11 +1067,11 @@
   }
 
   function moduleLabel(m) {
-    return {dashboard:'Tableau de bord',tasks:'Tâches',notifications:'Notifications',alerts:'Alertes','task-detail':'Détail tâche'}[m] || m;
+    return {dashboard:'Tableau de bord',tasks:'Tâches',notifications:'Notifications',alerts:'Alertes'}[m] || m;
   }
 
   function moduleIconName(m) {
-    return {dashboard:'grid',tasks:'check-sq',notifications:'bell',alerts:'alert-tri','task-detail':'check-sq'}[m] || 'grid';
+    return {dashboard:'grid',tasks:'check-sq',notifications:'bell',alerts:'alert-tri'}[m] || 'grid';
   }
 
   // ── Badges markup ─────────────────────────────────────
