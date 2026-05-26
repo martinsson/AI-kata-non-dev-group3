@@ -49,7 +49,20 @@
       { id: uid(), message: 'Mise à jour de sécurité disponible : kernel 6.x',source: 'Système',   severity: 'info',     active: true,  date: ago(60) },
       { id: uid(), message: 'Tentatives de connexion SSH répétées (>100/min)', source: 'Firewall',  severity: 'critical', active: false, date: ago(180) },
     ],
+    projects: [
+      { id: uid(), number: 'PRJ0001', title: 'Refonte site corporate',      designer: 'Alice Martin', status: 'active',  priority: 'high',     due: '2026-08-01', client: 'ACME Corp',    description: 'Refonte complète du site vitrine — UX, charte et intégration.' },
+      { id: uid(), number: 'PRJ0002', title: 'Charte graphique v3',          designer: 'Alice Martin', status: 'active',  priority: 'medium',   due: '2026-07-15', client: 'Interne',      description: 'Mise à jour de la charte : typographie, couleurs, composants.' },
+      { id: uid(), number: 'PRJ0003', title: 'Maquettes app mobile',         designer: 'Alice Martin', status: 'review',  priority: 'high',     due: '2026-06-28', client: 'StartupXYZ',   description: '' },
+      { id: uid(), number: 'PRJ0004', title: 'Application mobile iOS',       designer: 'Bob Dupont',   status: 'active',  priority: 'critical', due: '2026-07-01', client: 'ClientABC',    description: 'Design des écrans iOS pour l\'app de livraison.' },
+      { id: uid(), number: 'PRJ0005', title: 'Dashboard analytics',          designer: 'Bob Dupont',   status: 'active',  priority: 'medium',   due: '2026-08-20', client: 'Interne',      description: 'Conception des vues de reporting et KPI.' },
+      { id: uid(), number: 'PRJ0006', title: 'Audit UX portail RH',          designer: 'Claire Leroy', status: 'active',  priority: 'high',     due: '2026-06-20', client: 'RH Corp',      description: 'Audit complet + recommandations d\'amélioration du portail.' },
+      { id: uid(), number: 'PRJ0007', title: 'Design system v2',             designer: 'Claire Leroy', status: 'review',  priority: 'medium',   due: '2026-09-01', client: 'Interne',      description: 'Documentation et composants du design system v2.' },
+      { id: uid(), number: 'PRJ0008', title: 'Prototype e-commerce',         designer: 'David Petit',  status: 'active',  priority: 'high',     due: '2026-07-20', client: 'ShopCo',       description: 'Prototype cliquable Figma pour le parcours achat.' },
+      { id: uid(), number: 'PRJ0009', title: 'Newsletter template',          designer: 'David Petit',  status: 'active',  priority: 'low',      due: '2026-06-15', client: 'Marketing',    description: '' },
+      { id: uid(), number: 'PRJ0010', title: 'Onboarding flow',              designer: 'David Petit',  status: 'review',  priority: 'medium',   due: '2026-08-10', client: 'Produit',      description: 'Conception du parcours d\'onboarding pour les nouveaux utilisateurs.' },
+    ],
     _tkSeq: 7,
+    _prjSeq: 11,
   });
 
   function ago(min) {
@@ -143,9 +156,12 @@
     el.innerHTML = '';
     if (tab.module === 'tasks' && tab.taskId) {
       renderTaskDetail(el, tab);
+    } else if (tab.module === 'projects' && tab.projectId) {
+      renderProjectDetail(el, tab);
     } else {
       ({ dashboard: renderDashboard, tasks: renderTasksList,
          notifications: renderNotifList, alerts: renderAlertsList,
+         projects: renderProjectsList,
        })[tab.module]?.(el, tab);
     }
   }
@@ -936,6 +952,257 @@
     });
   }
 
+  // ── Projects ──────────────────────────────────────────────
+  const AVATAR_COLORS = ['#0070d1','#3ba755','#c86400','#5f2ee5','#d93025','#00828a'];
+  function designerColor(name) {
+    let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff;
+    return AVATAR_COLORS[h % AVATAR_COLORS.length];
+  }
+  function designerInitials(name) {
+    return name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  }
+
+  function renderProjectsList(root) {
+    let filter = { designer: '', status: '', q: '' };
+
+    const allDesigners = () => [...new Set(S.projects.map(p => p.designer))].sort();
+
+    const rebuild = () => {
+      let rows = [...S.projects];
+      if (filter.designer) rows = rows.filter(p => p.designer === filter.designer);
+      if (filter.status)   rows = rows.filter(p => p.status   === filter.status);
+      if (filter.q) {
+        const q = filter.q.toLowerCase();
+        rows = rows.filter(p => p.title.toLowerCase().includes(q) ||
+          p.number.toLowerCase().includes(q) || (p.client||'').toLowerCase().includes(q));
+      }
+
+      const designers = filter.designer ? [filter.designer] : allDesigners();
+      const grid = root.querySelector('#designer-grid');
+      if (!rows.length) {
+        grid.innerHTML = `<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--w-text-muted);font-style:italic">Aucun projet trouvé.</div>`;
+        return;
+      }
+
+      grid.innerHTML = designers.map(d => {
+        const dRows = rows.filter(p => p.designer === d);
+        if (!dRows.length) return '';
+        return `
+        <div class="designer-card">
+          <div class="designer-card-header">
+            <div class="designer-avatar" style="background:${designerColor(d)}">${designerInitials(d)}</div>
+            <div class="designer-name">${esc(d)}</div>
+            <div class="designer-prj-count">${dRows.length} projet${dRows.length > 1 ? 's' : ''}</div>
+          </div>
+          <div class="designer-card-body">
+            ${dRows.map(p => `
+            <div class="prj-row" data-open-prj="${p.id}">
+              <span class="prj-number">${esc(p.number)}</span>
+              <span class="prj-title" title="${esc(p.title)}">${esc(p.title)}</span>
+              <span class="prj-meta">
+                ${prjStatusBadge(p.status)}
+                ${prioBadge(p.priority)}
+                <span class="prj-due ${isOverdue(p.due) && p.status !== 'done' ? 'overdue' : ''}">${fmtShort(p.due)}</span>
+              </span>
+            </div>`).join('')}
+          </div>
+        </div>`;
+      }).join('');
+
+      grid.querySelectorAll('[data-open-prj]').forEach(el =>
+        el.addEventListener('click', () => {
+          const tab = tabs.find(x => x.id === activeTabId);
+          if (tab) { tab.projectId = el.dataset.openPrj; renderContent(); }
+        })
+      );
+
+      root.querySelector('.list-footer .count').textContent =
+        `${rows.length} projet${rows.length !== 1 ? 's' : ''}`;
+    };
+
+    root.innerHTML = `
+    <div class="breadcrumb-bar">
+      <span class="bc-link" data-bc>Accueil</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-current">Projets</span>
+    </div>
+    <div class="list-header">
+      <div class="list-title">Projets par designer</div>
+      <div class="list-actions">
+        <button class="btn btn-primary" id="btn-new-prj">${svgIcon('plus',13)} Nouveau</button>
+      </div>
+    </div>
+    <div class="list-toolbar">
+      <div class="search-box">
+        ${svgIcon('search',12)}
+        <input type="text" id="prj-search" placeholder="Rechercher…"/>
+      </div>
+      <div class="filter-controls">
+        <select id="prj-filter-designer" class="filter-select">
+          <option value="">Tous les designers</option>
+          ${[...new Set(S.projects.map(p => p.designer))].sort()
+            .map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('')}
+        </select>
+        <select id="prj-filter-status" class="filter-select">
+          <option value="">Tous statuts</option>
+          <option value="active">Actif</option>
+          <option value="review">En révision</option>
+          <option value="done">Terminé</option>
+          <option value="paused">En pause</option>
+        </select>
+      </div>
+    </div>
+    <div class="designer-grid" id="designer-grid"></div>
+    <div class="list-footer"><span class="count"></span></div>`;
+
+    root.querySelector('#btn-new-prj').addEventListener('click', () => openProjectForm());
+    root.querySelector('#prj-search').addEventListener('input', e => { filter.q = e.target.value; rebuild(); });
+    root.querySelector('#prj-filter-designer').addEventListener('change', e => { filter.designer = e.target.value; rebuild(); });
+    root.querySelector('#prj-filter-status').addEventListener('change',   e => { filter.status   = e.target.value; rebuild(); });
+    root.querySelector('.bc-link').addEventListener('click', () => openTab('dashboard'));
+    rebuild();
+  }
+
+  function renderProjectDetail(root, tab) {
+    const p = S.projects.find(x => x.id === tab.projectId);
+    if (!p) { root.innerHTML = `<div style="padding:32px;color:var(--w-text-muted)">Projet introuvable.</div>`; return; }
+
+    root.innerHTML = `
+    <div class="breadcrumb-bar">
+      <span class="bc-link" data-go="projects">Accueil</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-link" data-go="projects-list">Projets</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-current">${esc(p.number)}</span>
+    </div>
+
+    <div class="record-header">
+      <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+        <div class="designer-avatar" style="background:${designerColor(p.designer)};width:42px;height:42px;font-size:14px;flex-shrink:0">${designerInitials(p.designer)}</div>
+        <div style="min-width:0">
+          <div class="record-number">${esc(p.number)} · ${esc(p.designer)}</div>
+          <div class="record-title">${esc(p.title)}</div>
+        </div>
+      </div>
+      <div class="record-actions">
+        <button class="btn btn-secondary btn-sm" id="prj-det-edit">${svgIcon('edit',13)} Modifier</button>
+      </div>
+    </div>
+
+    <div class="form-body">
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="form-section-title">${svgIcon('info',12)} Informations</div>
+        </div>
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Statut</label>
+            <div class="field-value">${prjStatusBadge(p.status)}</div>
+          </div>
+          <div class="form-field">
+            <label>Priorité</label>
+            <div class="field-value">${prioBadge(p.priority)}</div>
+          </div>
+          <div class="form-field">
+            <label>Client</label>
+            <div class="field-value">${esc(p.client || '—')}</div>
+          </div>
+          <div class="form-field">
+            <label>Échéance</label>
+            <div class="field-value ${isOverdue(p.due) && p.status !== 'done' ? 'text-danger' : ''}">${fmtShort(p.due) || '—'}</div>
+          </div>
+          <div class="form-field">
+            <label>Designer</label>
+            <div class="field-value" style="display:flex;align-items:center;gap:8px">
+              <div class="designer-avatar" style="background:${designerColor(p.designer)};width:24px;height:24px;font-size:10px">${designerInitials(p.designer)}</div>
+              ${esc(p.designer)}
+            </div>
+          </div>
+          ${p.description ? `<div class="form-field full"><label>Description</label><div class="field-value">${esc(p.description)}</div></div>` : ''}
+        </div>
+      </div>
+    </div>`;
+
+    root.querySelectorAll('[data-go]').forEach(b =>
+      b.addEventListener('click', () => {
+        if (b.dataset.go === 'projects' || b.dataset.go === 'projects-list') {
+          const t = tabs.find(x => x.id === activeTabId);
+          if (t && t.module === 'projects') { delete t.projectId; renderContent(); return; }
+        }
+        openTab('dashboard');
+      })
+    );
+
+    root.querySelector('#prj-det-edit').addEventListener('click', () =>
+      openProjectForm(p.id, () => renderContent())
+    );
+  }
+
+  function openProjectForm(id, onDone) {
+    const rec = id ? S.projects.find(p => p.id === id) : null;
+    const d = rec || {};
+    const designers = [...new Set(S.projects.map(p => p.designer))].sort();
+    openModal(rec ? `Modifier ${rec.number}` : 'Nouveau projet', `
+      <div class="form-section">
+        <div class="form-grid">
+          <div class="form-field full">
+            <label>Titre <span class="req">*</span></label>
+            <input type="text" name="title" value="${esc(d.title||'')}" required/>
+          </div>
+          <div class="form-field">
+            <label>Designer <span class="req">*</span></label>
+            <input type="text" name="designer" list="designer-list" value="${esc(d.designer||'')}"/>
+            <datalist id="designer-list">
+              ${designers.map(n => `<option value="${esc(n)}">`).join('')}
+            </datalist>
+          </div>
+          <div class="form-field">
+            <label>Client</label>
+            <input type="text" name="client" value="${esc(d.client||'')}"/>
+          </div>
+          <div class="form-field">
+            <label>Priorité</label>
+            <select name="priority">
+              ${optsMap({critical:'Critique',high:'Haute',medium:'Moyenne',low:'Basse'}, d.priority||'medium')}
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Statut</label>
+            <select name="status">
+              ${optsMap({active:'Actif',review:'En révision',done:'Terminé',paused:'En pause'}, d.status||'active')}
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Échéance</label>
+            <input type="date" name="due" value="${d.due||''}"/>
+          </div>
+          <div class="form-field full">
+            <label>Description</label>
+            <textarea name="description">${esc(d.description||'')}</textarea>
+          </div>
+        </div>
+      </div>
+    `, () => {
+      const f = collectModal();
+      if (!f.title?.trim())    return alert('Le titre est obligatoire.');
+      if (!f.designer?.trim()) return alert('Le designer est obligatoire.');
+      if (rec) { Object.assign(rec, f); }
+      else {
+        const num = `PRJ${String(S._prjSeq++).padStart(4,'0')}`;
+        S.projects.push({ id: uid(), number: num, ...f });
+      }
+      save(); closeModal();
+      onDone ? onDone() : renderContent();
+      updateBadges();
+    });
+  }
+
+  function prjStatusBadge(s) {
+    const m = { active:['b-progress','Actif'], review:['b-high','En révision'], done:['b-done','Terminé'], paused:['b-cancelled','En pause'] };
+    const [c, l] = m[s] || ['b-cancelled', s];
+    return `<span class="badge ${c}">${l}</span>`;
+  }
+
   function openAlertForm(id, onDone) {
     const rec = id ? S.alerts.find(a => a.id === id) : null;
     const d = rec || {};
@@ -1008,9 +1275,11 @@
     const unread = S.notifications.filter(n => !n.read).length;
     const active = S.alerts.filter(a => a.active).length;
 
-    setNavBadge('nav-badge-tasks',  open,   false);
-    setNavBadge('nav-badge-notifs', unread, false);
-    setNavBadge('nav-badge-alerts', active, true);
+    const activeProjects = S.projects.filter(p => p.status === 'active' || p.status === 'review').length;
+    setNavBadge('nav-badge-tasks',    open,          false);
+    setNavBadge('nav-badge-notifs',   unread,        false);
+    setNavBadge('nav-badge-alerts',   active,        true);
+    setNavBadge('nav-badge-projects', activeProjects, false);
 
     const nb = document.getElementById('notif-badge');
     const ab = document.getElementById('alert-badge');
@@ -1067,11 +1336,11 @@
   }
 
   function moduleLabel(m) {
-    return {dashboard:'Tableau de bord',tasks:'Tâches',notifications:'Notifications',alerts:'Alertes'}[m] || m;
+    return {dashboard:'Tableau de bord',tasks:'Tâches',notifications:'Notifications',alerts:'Alertes',projects:'Projets'}[m] || m;
   }
 
   function moduleIconName(m) {
-    return {dashboard:'grid',tasks:'check-sq',notifications:'bell',alerts:'alert-tri'}[m] || 'grid';
+    return {dashboard:'grid',tasks:'check-sq',notifications:'bell',alerts:'alert-tri',projects:'briefcase'}[m] || 'grid';
   }
 
   // ── Badges markup ─────────────────────────────────────
@@ -1111,6 +1380,7 @@
       info:       '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
       external:   '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>',
       link:       '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+      briefcase:  '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>',
     };
     return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;display:inline-block;vertical-align:middle">${paths[name]||''}</svg>`;
   }
