@@ -712,18 +712,6 @@
     el.style.display = n > 0 ? '' : 'none';
   }
 
-  // ── Nav sidebar toggle ────────────────────────────────
-  let navExpanded = false;
-
-  function toggleNav() {
-    navExpanded = !navExpanded;
-    const nav = document.getElementById('app-nav');
-    nav.classList.toggle('expanded', navExpanded);
-    const icon = document.getElementById('nav-toggle-icon');
-    icon.setAttribute('viewBox', '0 0 24 24');
-    icon.querySelector('polyline').setAttribute('points', navExpanded ? '15 18 9 12 15 6' : '9 18 15 12 9 6');
-    document.querySelector('.nav-toggle').title = navExpanded ? 'Réduire' : 'Développer';
-  }
 
   // ── Helpers ───────────────────────────────────────────
   function esc(s) {
@@ -812,8 +800,6 @@
   }
 
   // ── Boot ──────────────────────────────────────────────
-  document.getElementById('nav-toggle-btn').addEventListener('click', toggleNav);
-  document.getElementById('nav-expand-btn').addEventListener('click', toggleNav);
 
   document.querySelectorAll('.nav-module').forEach(el =>
     el.addEventListener('click', () => openTab(el.dataset.module))
