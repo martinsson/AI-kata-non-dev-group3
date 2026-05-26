@@ -269,14 +269,15 @@
       b.addEventListener('click', () => { deleteNotif(b.dataset.deleteNotif); render(); updateCounters(); }));
   }
 
-  function notifItemHTML(n, showEdit) {
-    const typeColor = { info: 'var(--sn-primary)', warning: '#e07b00', error: 'var(--sn-danger)', success: 'var(--sn-success)' }[n.type] || 'var(--sn-primary)';
+  function notifItemHTML(n) {
+    const typeLabel = { info: 'Information', warning: 'Avertissement', error: 'Erreur', success: 'Succès' }[n.type] || n.type;
     return `<div class="notif-item ${n.read ? '' : 'unread'}">
+      <div class="type-stripe ${n.type || 'info'}"></div>
       <div class="notif-dot ${n.read ? 'read' : ''}"></div>
       <div class="notif-body">
-        <div class="notif-title" style="color:${typeColor}">${notifTypeIcon(n.type)} ${esc(n.title)}</div>
+        <div class="notif-title">${esc(n.title)}</div>
         <div class="notif-desc">${esc(n.description)}</div>
-        <div class="notif-time">${fmtRelative(n.date)}</div>
+        <div class="notif-time">${typeLabel} · ${fmtRelative(n.date)}</div>
       </div>
       <div class="notif-actions">
         ${!n.read ? `<button class="btn-icon" data-mark-read="${n.id}" title="Marquer comme lu">
@@ -287,16 +288,6 @@
         </button>
       </div>
     </div>`;
-  }
-
-  function notifTypeIcon(type) {
-    const icons = {
-      info:    '&#9432;',
-      warning: '&#9888;',
-      error:   '&#10005;',
-      success: '&#10003;',
-    };
-    return icons[type] || '';
   }
 
   function openNotifForm() {
