@@ -158,6 +158,13 @@ button:disabled { opacity: .6; cursor: progress; }
 .badge.down { background: rgba(248, 113, 113, .15); color: var(--bad); }
 .badge.flat { background: rgba(148, 163, 184, .15); color: var(--muted); }
 
+.dirigeants {
+  margin: .6rem 0 0;
+  color: var(--text);
+  font-size: .92rem;
+}
+.dirigeants .muted { color: var(--muted); }
+
 .descriptif {
   margin: .75rem 0 0;
   color: var(--text);
