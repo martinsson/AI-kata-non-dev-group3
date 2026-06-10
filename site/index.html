@@ -1,13 +1,65 @@
 <!doctype html>
-<title>Bonjour Groupe 3</title>
-<h1>Bonjour Groupe 3 !</h1>
-<p id="datetime"></p>
-<script>
-  function afficherDateHeure() {
-    var maintenant = new Date();
-    document.getElementById('datetime').textContent =
-      maintenant.toLocaleString('fr-FR');
-  }
-  afficherDateHeure();
-  setInterval(afficherDateHeure, 1000);
-</script>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BODACC — Changements de capital en Isère</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Changements de capital social en Isère</h1>
+    <p class="subtitle">
+      Sociétés du département de l'Isère (38) ayant publié une modification de
+      capital social au BODACC sur les dernières semaines.
+    </p>
+  </header>
+
+  <main>
+    <form id="form" class="controls">
+      <div class="field">
+        <label for="dept">Département</label>
+        <input id="dept" type="text" value="38" inputmode="numeric" />
+        <small>Code INSEE (Isère = 38)</small>
+      </div>
+      <div class="field">
+        <label for="jours">Période (jours)</label>
+        <input id="jours" type="number" min="1" max="365" value="14" />
+        <small>2 semaines = 14 jours</small>
+      </div>
+      <div class="field">
+        <label for="motcle">Mot-clé recherché</label>
+        <input id="motcle" type="text" value="capital social" />
+        <small>Recherche dans les modifications</small>
+      </div>
+      <div class="field">
+        <label for="montantMin">Nouveau capital min. (€)</label>
+        <input id="montantMin" type="number" min="0" step="1000" value="0" />
+        <small>0 = pas de filtre</small>
+      </div>
+      <div class="field field--check">
+        <label>
+          <input id="seulementCapital" type="checkbox" checked />
+          Uniquement les annonces avec un montant de capital détecté
+        </label>
+      </div>
+      <div class="field field--submit">
+        <button type="submit" id="btn">Rechercher</button>
+      </div>
+    </form>
+
+    <section id="status" class="status" aria-live="polite"></section>
+
+    <section id="results"></section>
+  </main>
+
+  <footer>
+    <p>
+      Source&nbsp;: <a href="https://bodacc-datadila.opendatasoft.com/explore/dataset/annonces-commerciales/" target="_blank" rel="noopener">API BODACC — annonces-commerciales</a>
+      (Opendatasoft / DILA). Données publiques.
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
