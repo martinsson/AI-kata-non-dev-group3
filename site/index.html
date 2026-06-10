@@ -1,3 +1,13 @@
 <!doctype html>
-<title>Hello</title>
-<h1>Hello, world!</h1>
+<title>Bonjour Groupe 3</title>
+<h1>Bonjour Groupe 3 !</h1>
+<p id="datetime"></p>
+<script>
+  function afficherDateHeure() {
+    var maintenant = new Date();
+    document.getElementById('datetime').textContent =
+      maintenant.toLocaleString('fr-FR');
+  }
+  afficherDateHeure();
+  setInterval(afficherDateHeure, 1000);
+</script>
