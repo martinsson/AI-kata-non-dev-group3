@@ -222,6 +222,7 @@ function carte({ rec, capital }) {
   }${rec.tribunal ? " · " + escapeHtml(rec.tribunal) : ""}
       </p>
       ${blocCapital(capital)}
+      ${blocDirigeants(rec)}
       ${
         capital && capital.descriptif
           ? `<p class="descriptif">${escapeHtml(capital.descriptif)}</p>`
@@ -265,29 +266,78 @@ function nomSociete(rec) {
   return fromPersonnes || rec.commercant || "(dénomination non précisée)";
 }
 
-function denominationPersonnes(listepersonnes) {
-  if (!listepersonnes) return null;
+function extrairePersonnes(listepersonnes) {
+  if (!listepersonnes) return [];
   let obj = listepersonnes;
   if (typeof obj === "string") {
     try {
       obj = JSON.parse(obj);
     } catch (_) {
-      return null;
+      return [];
     }
   }
-  const personnes = obj.personne
-    ? [obj.personne]
-    : Array.isArray(obj.personnes)
-    ? obj.personnes
-    : Array.isArray(obj)
-    ? obj
-    : [];
-  for (const p of personnes) {
-    if (!p || typeof p !== "object") continue;
+  let personnes;
+  if (Array.isArray(obj)) personnes = obj;
+  else if (Array.isArray(obj.personnes)) personnes = obj.personnes;
+  else if (obj.personne) personnes = [obj.personne];
+  else personnes = [];
+  return personnes.filter((p) => p && typeof p === "object");
+}
+
+function denominationPersonnes(listepersonnes) {
+  for (const p of extrairePersonnes(listepersonnes)) {
     const nom = p.denomination || p.nom || p.nomCommercial;
     if (nom) return String(nom);
   }
   return null;
+}
+
+// Dirigeants : personnes physiques de l'annonce + éventuel texte d'administration.
+function blocDirigeants(rec) {
+  const noms = dirigeants(rec);
+  const admin = administration(rec);
+  let contenu = "";
+  if (noms.length) contenu = escapeHtml(noms.join(", "));
+  if (admin) contenu += (contenu ? " — " : "") + escapeHtml(admin);
+  if (!contenu) contenu = '<span class="muted">non précisé dans l\'annonce</span>';
+  return `<p class="dirigeants"><strong>Dirigeants&nbsp;:</strong> ${contenu}</p>`;
+}
+
+function dirigeants(rec) {
+  const noms = [];
+  for (const p of extrairePersonnes(rec.listepersonnes)) {
+    if (p.denomination) continue; // personne morale = la société, pas un dirigeant
+    const nom = nomPhysique(p);
+    if (!nom) continue;
+    const qualite = p.qualite || p.fonction || p.role || "";
+    noms.push(qualite ? `${nom} (${qualite})` : nom);
+  }
+  return noms;
+}
+
+function nomPhysique(p) {
+  const nom = p.nom || p.nomUsage || "";
+  const prenom =
+    p.prenom || (Array.isArray(p.prenoms) ? p.prenoms.join(" ") : p.prenoms) || "";
+  const complet = `${prenom} ${nom}`.trim();
+  return complet || null;
+}
+
+function administration(rec) {
+  const obj = parseMods(rec.modificationsgenerales);
+  if (!obj) return "";
+  const v = obj.administration || obj.dirigeants || obj.gerance;
+  return typeof v === "string" ? v.trim() : "";
+}
+
+function parseMods(modString) {
+  if (!modString) return null;
+  if (typeof modString === "object") return modString;
+  try {
+    return JSON.parse(modString);
+  } catch (_) {
+    return null;
+  }
 }
 
 function registreStr(rec) {
