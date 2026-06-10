@@ -11,3 +11,7 @@
 
 # Node (in case you add tooling later)
 node_modules/
+
+# Python
+__pycache__/
+*.pyc
