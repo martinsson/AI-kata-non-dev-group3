@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FIFA World Cup 2026 — Teams Tree View</title>
+  <title>FIFA World Cup 2026 — Groups Tree View</title>
   <style>
     :root {
       --bg: #0b1020;
@@ -22,10 +22,7 @@
       color: var(--text);
       min-height: 100vh;
     }
-    header {
-      padding: 28px 20px 8px;
-      text-align: center;
-    }
+    header { padding: 28px 20px 8px; text-align: center; }
     h1 { margin: 0 0 6px; font-size: clamp(20px, 4vw, 30px); }
     .sub { color: var(--muted); font-size: 14px; }
     .wrap { max-width: 820px; margin: 0 auto; padding: 16px 18px 60px; }
@@ -42,6 +39,7 @@
       background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent2);
       padding: 10px 14px; border-radius: 8px; color: var(--muted); font-size: 13px; margin-bottom: 18px;
     }
+    .note strong { color: var(--text); }
     ul.tree { list-style: none; margin: 0; padding: 0; }
     ul.tree ul { list-style: none; margin: 0; padding-left: 22px; border-left: 1px dashed var(--line); }
     li { margin: 2px 0; }
@@ -64,21 +62,22 @@
       font-size: 11px; color: var(--bg); background: var(--accent);
       border-radius: 20px; padding: 1px 8px; margin-left: 6px; font-weight: 700;
     }
+    .badge.host { background: var(--accent2); }
     footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 24px; }
   </style>
 </head>
 <body>
   <header>
-    <h1>🏆 FIFA World Cup 2026 — Teams</h1>
-    <div class="sub">USA · Canada · Mexico — 48 teams across 6 confederations</div>
+    <h1>🏆 FIFA World Cup 2026 — Group Stage</h1>
+    <div class="sub">USA · Canada · Mexico — 48 teams · 12 groups (A–L) of 4</div>
   </header>
 
   <div class="wrap">
     <div class="note">
-      <strong>Provisional list.</strong> Teams are grouped by confederation (the slot allocation is fixed:
-      UEFA 16, CAF 9, AFC 8, CONMEBOL 6, CONCACAF 6, OFC 1, + 2 inter-confederation play-off winners).
-      Some slots depend on qualification/play-offs and are shown as <em>TBD</em>. Edit the
-      <code>DATA</code> array in this file to update teams.
+      <strong>⚠️ Illustrative draw — not official.</strong> My knowledge cutoff is early 2026, so I cannot
+      verify the real group-stage draw or final qualifiers. Group heads are seeded by hosts and FIFA ranking;
+      remaining teams are distributed for illustration. Unconfirmed slots show as <em>TBD</em>.
+      Edit the <code>GROUPS</code> array in this file to drop in the official draw.
     </div>
 
     <div class="toolbar">
@@ -92,98 +91,87 @@
   </div>
 
   <script>
-    // ---- Edit team data here ----------------------------------------------
-    // host = co-host nation. tbd = slot not yet confirmed.
-    const DATA = [
-      {
-        confed: "CONCACAF (North/Central America & Caribbean)", slots: 6,
-        teams: [
-          { name: "United States", flag: "🇺🇸", host: true },
-          { name: "Mexico", flag: "🇲🇽", host: true },
-          { name: "Canada", flag: "🇨🇦", host: true },
-          { name: "Qualifier 4", flag: "🏳️", tbd: true },
-          { name: "Qualifier 5", flag: "🏳️", tbd: true },
-          { name: "Qualifier 6", flag: "🏳️", tbd: true }
-        ]
-      },
-      {
-        confed: "UEFA (Europe)", slots: 16,
-        teams: [
-          { name: "Spain", flag: "🇪🇸" },
-          { name: "France", flag: "🇫🇷" },
-          { name: "England", flag: "🏴" },
-          { name: "Portugal", flag: "🇵🇹" },
-          { name: "Netherlands", flag: "🇳🇱" },
-          { name: "Germany", flag: "🇩🇪" },
-          { name: "Italy", flag: "🇮🇹" },
-          { name: "Croatia", flag: "🇭🇷" },
-          { name: "Belgium", flag: "🇧🇪" },
-          { name: "Switzerland", flag: "🇨🇭" },
-          { name: "Austria", flag: "🇦🇹" },
-          { name: "Denmark", flag: "🇩🇰" },
-          { name: "Other UEFA qualifier", flag: "🏳️", tbd: true },
-          { name: "Other UEFA qualifier", flag: "🏳️", tbd: true },
-          { name: "Other UEFA qualifier", flag: "🏳️", tbd: true },
-          { name: "Play-off slot", flag: "🏳️", tbd: true }
-        ]
-      },
-      {
-        confed: "CONMEBOL (South America)", slots: 6,
-        teams: [
-          { name: "Argentina", flag: "🇦🇷" },
-          { name: "Brazil", flag: "🇧🇷" },
-          { name: "Uruguay", flag: "🇺🇾" },
-          { name: "Colombia", flag: "🇨🇴" },
-          { name: "Ecuador", flag: "🇪🇨" },
-          { name: "Paraguay", flag: "🇵🇾" }
-        ]
-      },
-      {
-        confed: "CAF (Africa)", slots: 9,
-        teams: [
-          { name: "Morocco", flag: "🇲🇦" },
-          { name: "Senegal", flag: "🇸🇳" },
-          { name: "Egypt", flag: "🇪🇬" },
-          { name: "Algeria", flag: "🇩🇿" },
-          { name: "Nigeria", flag: "🇳🇬" },
-          { name: "Ivory Coast", flag: "🇨🇮" },
-          { name: "Tunisia", flag: "🇹🇳" },
-          { name: "Cameroon", flag: "🇨🇲" },
-          { name: "Ghana", flag: "🇬🇭" }
-        ]
-      },
-      {
-        confed: "AFC (Asia)", slots: 8,
-        teams: [
-          { name: "Japan", flag: "🇯🇵" },
-          { name: "South Korea", flag: "🇰🇷" },
-          { name: "Iran", flag: "🇮🇷" },
-          { name: "Australia", flag: "🇦🇺" },
-          { name: "Saudi Arabia", flag: "🇸🇦" },
-          { name: "Qatar", flag: "🇶🇦" },
-          { name: "Other AFC qualifier", flag: "🏳️", tbd: true },
-          { name: "Other AFC qualifier", flag: "🏳️", tbd: true }
-        ]
-      },
-      {
-        confed: "OFC (Oceania)", slots: 1,
-        teams: [
-          { name: "New Zealand", flag: "🇳🇿" }
-        ]
-      },
-      {
-        confed: "Inter-confederation play-offs", slots: 2,
-        teams: [
-          { name: "Play-off winner 1", flag: "🏳️", tbd: true },
-          { name: "Play-off winner 2", flag: "🏳️", tbd: true }
-        ]
-      }
+    // ---- Edit the draw here -----------------------------------------------
+    // Each group has 4 teams. host = co-host nation, tbd = slot not yet confirmed.
+    const GROUPS = [
+      { group: "Group A", teams: [
+        { name: "Mexico", flag: "🇲🇽", host: true },
+        { name: "Croatia", flag: "🇭🇷" },
+        { name: "Ecuador", flag: "🇪🇨" },
+        { name: "New Zealand", flag: "🇳🇿" }
+      ]},
+      { group: "Group B", teams: [
+        { name: "Canada", flag: "🇨🇦", host: true },
+        { name: "Italy", flag: "🇮🇹" },
+        { name: "Paraguay", flag: "🇵🇾" },
+        { name: "Qualifier", flag: "🏳️", tbd: true }
+      ]},
+      { group: "Group C", teams: [
+        { name: "United States", flag: "🇺🇸", host: true },
+        { name: "Switzerland", flag: "🇨🇭" },
+        { name: "Egypt", flag: "🇪🇬" },
+        { name: "Qualifier", flag: "🏳️", tbd: true }
+      ]},
+      { group: "Group D", teams: [
+        { name: "Argentina", flag: "🇦🇷" },
+        { name: "Austria", flag: "🇦🇹" },
+        { name: "Algeria", flag: "🇩🇿" },
+        { name: "Qualifier", flag: "🏳️", tbd: true }
+      ]},
+      { group: "Group E", teams: [
+        { name: "Spain", flag: "🇪🇸" },
+        { name: "Denmark", flag: "🇩🇰" },
+        { name: "Nigeria", flag: "🇳🇬" },
+        { name: "Qualifier", flag: "🏳️", tbd: true }
+      ]},
+      { group: "Group F", teams: [
+        { name: "France", flag: "🇫🇷" },
+        { name: "Uruguay", flag: "🇺🇾" },
+        { name: "Ivory Coast", flag: "🇨🇮" },
+        { name: "Qualifier", flag: "🏳️", tbd: true }
+      ]},
+      { group: "Group G", teams: [
+        { name: "England", flag: "🏴" },
+        { name: "Colombia", flag: "🇨🇴" },
+        { name: "Tunisia", flag: "🇹🇳" },
+        { name: "Qualifier", flag: "🏳️", tbd: true }
+      ]},
+      { group: "Group H", teams: [
+        { name: "Brazil", flag: "🇧🇷" },
+        { name: "Morocco", flag: "🇲🇦" },
+        { name: "Cameroon", flag: "🇨🇲" },
+        { name: "Qualifier", flag: "🏳️", tbd: true }
+      ]},
+      { group: "Group I", teams: [
+        { name: "Portugal", flag: "🇵🇹" },
+        { name: "Senegal", flag: "🇸🇳" },
+        { name: "Ghana", flag: "🇬🇭" },
+        { name: "Qualifier", flag: "🏳️", tbd: true }
+      ]},
+      { group: "Group J", teams: [
+        { name: "Netherlands", flag: "🇳🇱" },
+        { name: "Japan", flag: "🇯🇵" },
+        { name: "Australia", flag: "🇦🇺" },
+        { name: "Qualifier", flag: "🏳️", tbd: true }
+      ]},
+      { group: "Group K", teams: [
+        { name: "Belgium", flag: "🇧🇪" },
+        { name: "Iran", flag: "🇮🇷" },
+        { name: "Saudi Arabia", flag: "🇸🇦" },
+        { name: "Qualifier", flag: "🏳️", tbd: true }
+      ]},
+      { group: "Group L", teams: [
+        { name: "Germany", flag: "🇩🇪" },
+        { name: "South Korea", flag: "🇰🇷" },
+        { name: "Qatar", flag: "🇶🇦" },
+        { name: "Qualifier", flag: "🏳️", tbd: true }
+      ]}
     ];
     // -----------------------------------------------------------------------
 
     const tree = document.getElementById("tree");
 
-    DATA.forEach(group => {
+    GROUPS.forEach(g => {
       const li = document.createElement("li");
       li.className = "branch";
 
@@ -191,18 +179,18 @@
       node.className = "node";
       node.innerHTML =
         `<span class="caret">▾</span>` +
-        `<span class="label">${group.confed}</span>` +
-        `<span class="count">— ${group.teams.length} of ${group.slots} slots</span>`;
+        `<span class="label">${g.group}</span>` +
+        `<span class="count">— ${g.teams.length} teams</span>`;
       node.addEventListener("click", () => li.classList.toggle("collapsed"));
 
       const ul = document.createElement("ul");
-      group.teams.forEach(t => {
+      g.teams.forEach(t => {
         const tl = document.createElement("li");
         tl.className = "team";
         tl.innerHTML =
           `<span class="flag">${t.flag}</span>` +
           `<span class="${t.tbd ? "tbd" : "leaf"}">${t.name}</span>` +
-          (t.host ? `<span class="badge">HOST</span>` : "");
+          (t.host ? `<span class="badge host">HOST</span>` : "");
         ul.appendChild(tl);
       });
 
