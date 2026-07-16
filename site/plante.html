@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PhytoScan — diagnostic de plante par photo</title>
+<style>
+  :root {
+    --bg: #f6f7f4;
+    --card: #ffffff;
+    --ink: #1c2620;
+    --muted: #5f6b63;
+    --line: #e3e7e0;
+    --brand: #2f7d5b;
+    --brand-ink: #1c5a3f;
+    --accent: #e8f3ec;
+    --warn: #b7791f;
+    --warn-bg: #fdf3e2;
+    --crit: #c0392b;
+    --crit-bg: #fbeae8;
+    --ok: #2f7d5b;
+    --ok-bg: #e8f3ec;
+    --shadow: 0 1px 2px rgba(20,40,30,.06), 0 8px 24px rgba(20,40,30,.06);
+    --radius: 16px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #10140f;
+      --card: #171d16;
+      --ink: #e9efe8;
+      --muted: #9aa89e;
+      --line: #2a332a;
+      --brand: #5cb98a;
+      --brand-ink: #8fd4ad;
+      --accent: #17281f;
+      --warn: #e0a94e;
+      --warn-bg: #2a2213;
+      --crit: #e57a6d;
+      --crit-bg: #2c1815;
+      --ok: #5cb98a;
+      --ok-bg: #17281f;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 20px 64px; }
+  header { text-align: center; padding: 24px 0 8px; }
+  .logo { font-size: 30px; }
+  h1 { font-size: 26px; margin: 8px 0 4px; letter-spacing: -.02em; }
+  .sub { color: var(--muted); margin: 0 auto; max-width: 52ch; font-size: 15px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin-top: 18px;
+  }
+  label { font-weight: 600; font-size: 14px; display: block; margin-bottom: 6px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+  input[type="password"], select {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 15px;
+  }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > div { flex: 1 1 200px; }
+  a { color: var(--brand-ink); }
+  .drop {
+    border: 2px dashed var(--line);
+    border-radius: 14px;
+    padding: 28px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    background: var(--bg);
+  }
+  .drop:hover, .drop.drag { border-color: var(--brand); background: var(--accent); }
+  .drop .big { font-size: 34px; }
+  .drop .t { font-weight: 600; margin-top: 6px; }
+  .drop .s { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  #preview { display: none; margin-top: 14px; }
+  #preview img { width: 100%; max-height: 360px; object-fit: contain; border-radius: 12px; background: var(--bg); }
+  .btn {
+    appearance: none; border: 0; cursor: pointer;
+    background: var(--brand); color: #fff;
+    font-size: 16px; font-weight: 600;
+    padding: 13px 18px; border-radius: 12px; width: 100%;
+    margin-top: 14px;
+    transition: filter .15s, opacity .15s;
+  }
+  .btn:hover { filter: brightness(1.05); }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
+  .btn.ghost { background: transparent; color: var(--brand-ink); border: 1px solid var(--line); margin-top: 8px; }
+  .hidden { display: none !important; }
+  /* results */
+  .score-head { display: flex; align-items: center; gap: 18px; }
+  .gauge { position: relative; width: 92px; height: 92px; flex: none; }
+  .gauge svg { transform: rotate(-90deg); }
+  .gauge .val { position: absolute; inset: 0; display: grid; place-items: center; font-size: 22px; font-weight: 700; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+  .b-sain { background: var(--ok-bg); color: var(--ok); }
+  .b-attention { background: var(--warn-bg); color: var(--warn); }
+  .b-critique { background: var(--crit-bg); color: var(--crit); }
+  .resume { font-size: 17px; margin: 14px 0 0; }
+  .plant-name { color: var(--muted); font-size: 14px; margin-top: 2px; }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 22px 0 10px; }
+  .diag {
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 10px;
+    border-left: 4px solid var(--line);
+  }
+  .diag.g-faible { border-left-color: var(--ok); }
+  .diag.g-moyenne { border-left-color: var(--warn); }
+  .diag.g-elevee { border-left-color: var(--crit); }
+  .diag .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .diag .name { font-weight: 600; }
+  .diag .meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .chips { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 12px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); padding: 3px 9px; border-radius: 999px; }
+  ul.actions { margin: 6px 0 0; padding-left: 20px; }
+  ul.actions li { margin: 6px 0; }
+  .error { background: var(--crit-bg); color: var(--crit); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-top: 14px; font-size: 14px; }
+  .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; display: inline-block; vertical-align: -3px; margin-right: 8px; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 28px; }
+  details.key summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🌿</div>
+    <h1>PhytoScan</h1>
+    <p class="sub">Prenez une plante en photo. L'IA en lit l'état physiologique et vous répond en langage clair : ce qui ne va pas, pourquoi, et quoi faire.</p>
+  </header>
+
+  <div class="card">
+    <details class="key" id="keyBlock">
+      <summary>Clé API Claude — <span id="keyStatus">requise</span></summary>
+      <div style="margin-top:12px">
+        <label for="apiKey">Votre clé API Anthropic</label>
+        <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off">
+        <p class="hint">Stockée uniquement dans votre navigateur (localStorage), jamais envoyée ailleurs qu'à l'API d'Anthropic. Obtenez-en une sur <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>.</p>
+      </div>
+    </details>
+
+    <div class="row" style="margin-top:14px">
+      <div>
+        <label for="model">Modèle</label>
+        <select id="model">
+          <option value="claude-opus-4-8">Claude Opus 4.8 — le plus précis</option>
+          <option value="claude-sonnet-5">Claude Sonnet 5 — bon équilibre</option>
+          <option value="claude-haiku-4-5">Claude Haiku 4.5 — rapide & éco</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-top:16px">
+      <label>Photo de la plante</label>
+      <div class="drop" id="drop">
+        <div class="big">📷</div>
+        <div class="t">Choisir une photo ou prendre en photo</div>
+        <div class="s">Feuilles, tige et terre visibles = meilleur diagnostic</div>
+      </div>
+      <input id="file" type="file" accept="image/*" capture="environment" class="hidden">
+      <div id="preview"><img id="previewImg" alt="Aperçu de la plante"></div>
+    </div>
+
+    <button class="btn" id="analyze" disabled>Analyser la plante</button>
+    <div id="error" class="error hidden"></div>
+  </div>
+
+  <div id="results" class="card hidden">
+    <div class="score-head">
+      <div class="gauge">
+        <svg width="92" height="92" viewBox="0 0 92 92">
+          <circle cx="46" cy="46" r="40" fill="none" stroke="var(--line)" stroke-width="8"/>
+          <circle id="gaugeArc" cx="46" cy="46" r="40" fill="none" stroke="var(--brand)" stroke-width="8" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+        </svg>
+        <div class="val" id="scoreVal">–</div>
+      </div>
+      <div>
+        <span id="stateBadge" class="badge">—</span>
+        <div class="plant-name" id="plantName"></div>
+      </div>
+    </div>
+    <p class="resume" id="resume"></p>
+
+    <h2 id="diagTitle">Diagnostics</h2>
+    <div id="diagList"></div>
+
+    <h2>Que faire</h2>
+    <ul class="actions" id="actionList"></ul>
+
+    <button class="btn ghost" id="again">Analyser une autre plante</button>
+  </div>
+
+  <footer>
+    Diagnostic indicatif généré par IA — ne remplace pas l'avis d'un professionnel pour les cultures sensibles.
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const keyInput = $("apiKey"), fileInput = $("file"), drop = $("drop");
+const analyzeBtn = $("analyze"), errBox = $("error"), results = $("results");
+let imageData = null, imageMime = null;
+
+// --- API key persistence ---
+const savedKey = localStorage.getItem("phytoscan_key");
+if (savedKey) { keyInput.value = savedKey; $("keyStatus").textContent = "enregistrée ✓"; }
+else { $("keyBlock").open = true; }
+keyInput.addEventListener("input", () => {
+  const v = keyInput.value.trim();
+  if (v) { localStorage.setItem("phytoscan_key", v); $("keyStatus").textContent = "enregistrée ✓"; }
+  else { localStorage.removeItem("phytoscan_key"); $("keyStatus").textContent = "requise"; }
+  refreshBtn();
+});
+const savedModel = localStorage.getItem("phytoscan_model");
+if (savedModel) $("model").value = savedModel;
+$("model").addEventListener("change", () => localStorage.setItem("phytoscan_model", $("model").value));
+
+// --- File / camera handling ---
+drop.addEventListener("click", () => fileInput.click());
+drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("drag"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("drag"));
+drop.addEventListener("drop", (e) => {
+  e.preventDefault(); drop.classList.remove("drag");
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener("change", () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+function handleFile(file) {
+  if (!file.type.startsWith("image/")) { showError("Merci de choisir un fichier image."); return; }
+  hideError();
+  const reader = new FileReader();
+  reader.onload = (e) => downscale(e.target.result);
+  reader.readAsDataURL(file);
+}
+
+// Downscale to keep the request light (max 1568px long edge)
+function downscale(dataUrl) {
+  const img = new Image();
+  img.onload = () => {
+    const max = 1568;
+    let { width, height } = img;
+    if (Math.max(width, height) > max) {
+      const r = max / Math.max(width, height);
+      width = Math.round(width * r); height = Math.round(height * r);
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = width; canvas.height = height;
+    canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+    const out = canvas.toDataURL("image/jpeg", 0.9);
+    imageMime = "image/jpeg";
+    imageData = out.split(",")[1];
+    $("previewImg").src = out;
+    $("preview").style.display = "block";
+    refreshBtn();
+  };
+  img.src = dataUrl;
+}
+
+function refreshBtn() {
+  analyzeBtn.disabled = !(imageData && keyInput.value.trim());
+}
+
+// --- Analysis ---
+const SCHEMA = {
+  type: "object",
+  properties: {
+    plante_identifiee: { type: "string" },
+    etat_general: { type: "string", enum: ["sain", "attention", "critique"] },
+    score_sante: { type: "integer" },
+    resume: { type: "string" },
+    diagnostics: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          probleme: { type: "string" },
+          categorie: { type: "string", enum: ["eau", "lumiere", "nutriments", "parasites", "maladie", "temperature", "croissance", "autre"] },
+          gravite: { type: "string", enum: ["faible", "moyenne", "elevee"] },
+          indices_visuels: { type: "array", items: { type: "string" } },
+          confiance: { type: "string", enum: ["faible", "moyenne", "elevee"] }
+        },
+        required: ["probleme", "categorie", "gravite", "indices_visuels", "confiance"],
+        additionalProperties: false
+      }
+    },
+    actions: { type: "array", items: { type: "string" } }
+  },
+  required: ["plante_identifiee", "etat_general", "score_sante", "resume", "diagnostics", "actions"],
+  additionalProperties: false
+};
+
+const SYSTEM = `Tu es un expert en physiologie végétale et phytopathologie. À partir d'une photo, tu évalues l'état d'une plante et tu le traduis en un message clair et humain, sans jargon inutile.
+
+Analyse les signes visibles : manque ou excès d'eau (flétrissement, texture, taches, jaunissement), carences (azote, potassium, magnésium…), parasites (pucerons, araignées rouges, cochenilles), maladies (oïdium, mildiou, taches fongiques), stress thermique ou lumineux, croissance anormale.
+
+Règles :
+- score_sante : entier 0–100 (100 = plante en parfaite santé).
+- etat_general : "sain" (score ≥ 75), "attention" (40–74), "critique" (< 40).
+- resume : 1 à 3 phrases, ton bienveillant et concret, comme si tu parlais au propriétaire de la plante.
+- diagnostics : uniquement les problèmes réellement visibles ; liste vide si la plante est saine. indices_visuels = ce que tu observes sur la photo qui justifie le diagnostic.
+- actions : gestes concrets et priorisés. Si aucune photo de plante n'est identifiable, score bas, resume qui explique poliment le problème, et actions = reprendre une photo nette.
+- Réponds en français.`;
+
+analyzeBtn.addEventListener("click", analyze);
+
+async function analyze() {
+  hideError();
+  const key = keyInput.value.trim();
+  if (!key || !imageData) return;
+  analyzeBtn.disabled = true;
+  const original = analyzeBtn.textContent;
+  analyzeBtn.innerHTML = '<span class="spinner"></span>Analyse en cours…';
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: $("model").value,
+        max_tokens: 1500,
+        system: SYSTEM,
+        output_config: { format: { type: "json_schema", schema: SCHEMA } },
+        messages: [{
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: imageMime, data: imageData } },
+            { type: "text", text: "Analyse l'état physiologique de cette plante." }
+          ]
+        }]
+      })
+    });
+
+    if (!res.ok) {
+      let msg = "Erreur " + res.status;
+      try { const j = await res.json(); if (j.error && j.error.message) msg += " — " + j.error.message; } catch (_) {}
+      if (res.status === 401) msg = "Clé API invalide ou manquante. Vérifiez votre clé.";
+      if (res.status === 429) msg = "Trop de requêtes ou quota atteint. Réessayez dans un instant.";
+      throw new Error(msg);
+    }
+
+    const data = await res.json();
+    const textBlock = (data.content || []).find(b => b.type === "text");
+    if (!textBlock) throw new Error("Réponse inattendue de l'API.");
+    render(JSON.parse(textBlock.text));
+  } catch (e) {
+    showError(e.message || "Une erreur est survenue.");
+  } finally {
+    analyzeBtn.innerHTML = original;
+    analyzeBtn.disabled = false;
+  }
+}
+
+const CAT_ICON = { eau: "💧", lumiere: "☀️", nutriments: "🧪", parasites: "🐛", maladie: "🦠", temperature: "🌡️", croissance: "📏", autre: "🔎" };
+const CAT_LABEL = { eau: "Eau", lumiere: "Lumière", nutriments: "Nutriments", parasites: "Parasites", maladie: "Maladie", temperature: "Température", croissance: "Croissance", autre: "Autre" };
+const GRAV_LABEL = { faible: "gravité faible", moyenne: "gravité moyenne", elevee: "gravité élevée" };
+
+function render(r) {
+  // gauge
+  const score = Math.max(0, Math.min(100, r.score_sante));
+  $("scoreVal").textContent = score;
+  const arc = $("gaugeArc");
+  const circ = 251.2;
+  arc.style.strokeDashoffset = circ - (circ * score / 100);
+  arc.style.stroke = score >= 75 ? "var(--ok)" : score >= 40 ? "var(--warn)" : "var(--crit)";
+
+  const badge = $("stateBadge");
+  badge.className = "badge b-" + r.etat_general;
+  const bl = { sain: "✅ Plante saine", attention: "⚠️ À surveiller", critique: "⛔ État critique" };
+  badge.textContent = bl[r.etat_general] || r.etat_general;
+
+  $("plantName").textContent = r.plante_identifiee ? "Plante : " + r.plante_identifiee : "";
+  $("resume").textContent = r.resume;
+
+  // diagnostics
+  const list = $("diagList");
+  list.innerHTML = "";
+  if (!r.diagnostics || r.diagnostics.length === 0) {
+    $("diagTitle").classList.add("hidden");
+  } else {
+    $("diagTitle").classList.remove("hidden");
+    r.diagnostics.forEach(d => {
+      const el = document.createElement("div");
+      el.className = "diag g-" + d.gravite;
+      const chips = (d.indices_visuels || []).map(i => `<span class="chip">${esc(i)}</span>`).join("");
+      el.innerHTML = `
+        <div class="top">
+          <div class="name">${CAT_ICON[d.categorie] || "🔎"} ${esc(d.probleme)}</div>
+          <div class="meta">${CAT_LABEL[d.categorie] || ""} · ${GRAV_LABEL[d.gravite]} · confiance ${esc(d.confiance)}</div>
+        </div>
+        <div class="chips">${chips}</div>`;
+      list.appendChild(el);
+    });
+  }
+
+  // actions
+  const ul = $("actionList");
+  ul.innerHTML = "";
+  (r.actions || []).forEach(a => {
+    const li = document.createElement("li");
+    li.textContent = a;
+    ul.appendChild(li);
+  });
+
+  results.classList.remove("hidden");
+  results.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+function showError(m) { errBox.textContent = m; errBox.classList.remove("hidden"); }
+function hideError() { errBox.classList.add("hidden"); }
+
+$("again").addEventListener("click", () => {
+  results.classList.add("hidden");
+  imageData = null;
+  $("preview").style.display = "none";
+  fileInput.value = "";
+  refreshBtn();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+</script>
+</body>
+</html>
