@@ -65,18 +65,6 @@
     margin-top: 18px;
   }
   label { font-weight: 600; font-size: 14px; display: block; margin-bottom: 6px; }
-  .hint { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
-  input[type="password"], select {
-    width: 100%;
-    padding: 11px 12px;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    background: var(--bg);
-    color: var(--ink);
-    font-size: 15px;
-  }
-  .row { display: flex; gap: 12px; flex-wrap: wrap; }
-  .row > div { flex: 1 1 200px; }
   a { color: var(--brand-ink); }
   .drop {
     border: 2px dashed var(--line);
@@ -135,7 +123,6 @@
   .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; display: inline-block; vertical-align: -3px; margin-right: 8px; animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 28px; }
-  details.key summary { cursor: pointer; font-size: 13px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -143,31 +130,11 @@
   <header>
     <div class="logo">🌿</div>
     <h1>PhytoScan</h1>
-    <p class="sub">Prenez une plante en photo. L'IA en lit l'état physiologique et vous répond en langage clair : ce qui ne va pas, pourquoi, et quoi faire.</p>
+    <p class="sub">Prenez une plante en photo. L'IA en lit l'état physiologique et vous répond en langage clair : ce qui ne va pas, pourquoi, et quoi faire. Aucune clé requise.</p>
   </header>
 
   <div class="card">
-    <details class="key" id="keyBlock">
-      <summary>Clé API Claude — <span id="keyStatus">requise</span></summary>
-      <div style="margin-top:12px">
-        <label for="apiKey">Votre clé API Anthropic</label>
-        <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off">
-        <p class="hint">Stockée uniquement dans votre navigateur (localStorage), jamais envoyée ailleurs qu'à l'API d'Anthropic. Obtenez-en une sur <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>.</p>
-      </div>
-    </details>
-
-    <div class="row" style="margin-top:14px">
-      <div>
-        <label for="model">Modèle</label>
-        <select id="model">
-          <option value="claude-opus-4-8">Claude Opus 4.8 — le plus précis</option>
-          <option value="claude-sonnet-5">Claude Sonnet 5 — bon équilibre</option>
-          <option value="claude-haiku-4-5">Claude Haiku 4.5 — rapide & éco</option>
-        </select>
-      </div>
-    </div>
-
-    <div style="margin-top:16px">
+    <div>
       <label>Photo de la plante</label>
       <div class="drop" id="drop">
         <div class="big">📷</div>
@@ -208,29 +175,19 @@
   </div>
 
   <footer>
-    Diagnostic indicatif généré par IA — ne remplace pas l'avis d'un professionnel pour les cultures sensibles.
+    Propulsé par un service IA public et gratuit (Pollinations) — peut être lent ou momentanément indisponible.<br>
+    Diagnostic indicatif — ne remplace pas l'avis d'un professionnel pour les cultures sensibles.
   </footer>
 </div>
 
 <script>
 const $ = (id) => document.getElementById(id);
-const keyInput = $("apiKey"), fileInput = $("file"), drop = $("drop");
+const fileInput = $("file"), drop = $("drop");
 const analyzeBtn = $("analyze"), errBox = $("error"), results = $("results");
 let imageData = null, imageMime = null;
 
-// --- API key persistence ---
-const savedKey = localStorage.getItem("phytoscan_key");
-if (savedKey) { keyInput.value = savedKey; $("keyStatus").textContent = "enregistrée ✓"; }
-else { $("keyBlock").open = true; }
-keyInput.addEventListener("input", () => {
-  const v = keyInput.value.trim();
-  if (v) { localStorage.setItem("phytoscan_key", v); $("keyStatus").textContent = "enregistrée ✓"; }
-  else { localStorage.removeItem("phytoscan_key"); $("keyStatus").textContent = "requise"; }
-  refreshBtn();
-});
-const savedModel = localStorage.getItem("phytoscan_model");
-if (savedModel) $("model").value = savedModel;
-$("model").addEventListener("change", () => localStorage.setItem("phytoscan_model", $("model").value));
+const ENDPOINT = "https://text.pollinations.ai/openai";
+const MODEL = "openai";
 
 // --- File / camera handling ---
 drop.addEventListener("click", () => fileInput.click());
@@ -250,11 +207,11 @@ function handleFile(file) {
   reader.readAsDataURL(file);
 }
 
-// Downscale to keep the request light (max 1568px long edge)
+// Downscale to keep the request light for the free service (max 1280px long edge)
 function downscale(dataUrl) {
   const img = new Image();
   img.onload = () => {
-    const max = 1568;
+    const max = 1280;
     let { width, height } = img;
     if (Math.max(width, height) > max) {
       const r = max / Math.max(width, height);
@@ -263,9 +220,9 @@ function downscale(dataUrl) {
     const canvas = document.createElement("canvas");
     canvas.width = width; canvas.height = height;
     canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-    const out = canvas.toDataURL("image/jpeg", 0.9);
+    const out = canvas.toDataURL("image/jpeg", 0.85);
     imageMime = "image/jpeg";
-    imageData = out.split(",")[1];
+    imageData = out; // full data URL, used directly by the OpenAI-style image_url
     $("previewImg").src = out;
     $("preview").style.display = "block";
     refreshBtn();
@@ -273,103 +230,106 @@ function downscale(dataUrl) {
   img.src = dataUrl;
 }
 
-function refreshBtn() {
-  analyzeBtn.disabled = !(imageData && keyInput.value.trim());
-}
+function refreshBtn() { analyzeBtn.disabled = !imageData; }
 
-// --- Analysis ---
-const SCHEMA = {
-  type: "object",
-  properties: {
-    plante_identifiee: { type: "string" },
-    etat_general: { type: "string", enum: ["sain", "attention", "critique"] },
-    score_sante: { type: "integer" },
-    resume: { type: "string" },
-    diagnostics: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          probleme: { type: "string" },
-          categorie: { type: "string", enum: ["eau", "lumiere", "nutriments", "parasites", "maladie", "temperature", "croissance", "autre"] },
-          gravite: { type: "string", enum: ["faible", "moyenne", "elevee"] },
-          indices_visuels: { type: "array", items: { type: "string" } },
-          confiance: { type: "string", enum: ["faible", "moyenne", "elevee"] }
-        },
-        required: ["probleme", "categorie", "gravite", "indices_visuels", "confiance"],
-        additionalProperties: false
-      }
-    },
-    actions: { type: "array", items: { type: "string" } }
-  },
-  required: ["plante_identifiee", "etat_general", "score_sante", "resume", "diagnostics", "actions"],
-  additionalProperties: false
-};
-
+// --- Prompt: strict JSON, described inline (no server-side schema enforcement) ---
 const SYSTEM = `Tu es un expert en physiologie végétale et phytopathologie. À partir d'une photo, tu évalues l'état d'une plante et tu le traduis en un message clair et humain, sans jargon inutile.
 
 Analyse les signes visibles : manque ou excès d'eau (flétrissement, texture, taches, jaunissement), carences (azote, potassium, magnésium…), parasites (pucerons, araignées rouges, cochenilles), maladies (oïdium, mildiou, taches fongiques), stress thermique ou lumineux, croissance anormale.
 
-Règles :
-- score_sante : entier 0–100 (100 = plante en parfaite santé).
-- etat_general : "sain" (score ≥ 75), "attention" (40–74), "critique" (< 40).
-- resume : 1 à 3 phrases, ton bienveillant et concret, comme si tu parlais au propriétaire de la plante.
-- diagnostics : uniquement les problèmes réellement visibles ; liste vide si la plante est saine. indices_visuels = ce que tu observes sur la photo qui justifie le diagnostic.
-- actions : gestes concrets et priorisés. Si aucune photo de plante n'est identifiable, score bas, resume qui explique poliment le problème, et actions = reprendre une photo nette.
-- Réponds en français.`;
+Tu réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, sans balises de code, correspondant EXACTEMENT à cette structure :
+{
+  "plante_identifiee": string,            // nom probable de la plante, ou "" si inconnu
+  "etat_general": "sain" | "attention" | "critique",
+  "score_sante": number,                  // entier 0-100 (100 = parfaite santé)
+  "resume": string,                       // 1 à 3 phrases, ton bienveillant et concret pour le propriétaire
+  "diagnostics": [                         // uniquement les problèmes réellement visibles ; [] si saine
+    {
+      "probleme": string,
+      "categorie": "eau" | "lumiere" | "nutriments" | "parasites" | "maladie" | "temperature" | "croissance" | "autre",
+      "gravite": "faible" | "moyenne" | "elevee",
+      "indices_visuels": [string],        // ce que tu observes sur la photo qui justifie le diagnostic
+      "confiance": "faible" | "moyenne" | "elevee"
+    }
+  ],
+  "actions": [string]                      // gestes concrets et priorisés
+}
+
+Règles : score_sante ≥ 75 => "sain", 40-74 => "attention", < 40 => "critique". Si aucune plante n'est identifiable sur la photo, mets un score bas, explique poliment dans "resume" et propose de reprendre une photo nette dans "actions". Réponds en français.`;
 
 analyzeBtn.addEventListener("click", analyze);
 
 async function analyze() {
   hideError();
-  const key = keyInput.value.trim();
-  if (!key || !imageData) return;
+  if (!imageData) return;
   analyzeBtn.disabled = true;
   const original = analyzeBtn.textContent;
-  analyzeBtn.innerHTML = '<span class="spinner"></span>Analyse en cours…';
+  analyzeBtn.innerHTML = '<span class="spinner"></span>Analyse en cours… (peut prendre 10–30 s)';
 
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch(ENDPOINT, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": key,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true"
-      },
+      headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        model: $("model").value,
-        max_tokens: 1500,
-        system: SYSTEM,
-        output_config: { format: { type: "json_schema", schema: SCHEMA } },
-        messages: [{
-          role: "user",
-          content: [
-            { type: "image", source: { type: "base64", media_type: imageMime, data: imageData } },
-            { type: "text", text: "Analyse l'état physiologique de cette plante." }
-          ]
-        }]
+        model: MODEL,
+        messages: [
+          { role: "system", content: SYSTEM },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Analyse l'état physiologique de cette plante et renvoie le JSON demandé." },
+              { type: "image_url", image_url: { url: imageData } }
+            ]
+          }
+        ],
+        response_format: { type: "json_object" }
       })
     });
 
     if (!res.ok) {
-      let msg = "Erreur " + res.status;
-      try { const j = await res.json(); if (j.error && j.error.message) msg += " — " + j.error.message; } catch (_) {}
-      if (res.status === 401) msg = "Clé API invalide ou manquante. Vérifiez votre clé.";
-      if (res.status === 429) msg = "Trop de requêtes ou quota atteint. Réessayez dans un instant.";
+      let msg = "Le service IA a répondu " + res.status + ".";
+      if (res.status === 429) msg = "Trop de requêtes sur le service gratuit. Patientez un instant et réessayez.";
+      if (res.status >= 500) msg = "Le service IA gratuit est momentanément indisponible. Réessayez dans un moment.";
       throw new Error(msg);
     }
 
-    const data = await res.json();
-    const textBlock = (data.content || []).find(b => b.type === "text");
-    if (!textBlock) throw new Error("Réponse inattendue de l'API.");
-    render(JSON.parse(textBlock.text));
+    const raw = await res.text();
+    const content = extractContent(raw);
+    const parsed = parseJson(content);
+    if (!parsed) throw new Error("Réponse illisible du service IA. Réessayez avec une photo nette.");
+    render(parsed);
   } catch (e) {
-    showError(e.message || "Une erreur est survenue.");
+    const m = (e && e.message) ? e.message : "Une erreur est survenue.";
+    showError(/failed to fetch|networkerror/i.test(m) ? "Impossible de joindre le service IA (réseau ou service indisponible). Réessayez." : m);
   } finally {
     analyzeBtn.innerHTML = original;
     analyzeBtn.disabled = false;
   }
+}
+
+// Pollinations /openai returns an OpenAI-style JSON; extract the message content.
+function extractContent(raw) {
+  try {
+    const data = JSON.parse(raw);
+    if (data && data.choices && data.choices[0] && data.choices[0].message) {
+      return data.choices[0].message.content;
+    }
+    // Some responses may already be the object we want
+    if (data && data.etat_general) return raw;
+  } catch (_) { /* not JSON envelope — treat raw as content */ }
+  return raw;
+}
+
+// Robustly parse a JSON object that may be wrapped in prose or code fences.
+function parseJson(text) {
+  if (typeof text !== "string") text = String(text);
+  let t = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/,"").trim();
+  try { return JSON.parse(t); } catch (_) {}
+  const start = t.indexOf("{"), end = t.lastIndexOf("}");
+  if (start !== -1 && end > start) {
+    try { return JSON.parse(t.slice(start, end + 1)); } catch (_) {}
+  }
+  return null;
 }
 
 const CAT_ICON = { eau: "💧", lumiere: "☀️", nutriments: "🧪", parasites: "🐛", maladie: "🦠", temperature: "🌡️", croissance: "📏", autre: "🔎" };
@@ -377,8 +337,14 @@ const CAT_LABEL = { eau: "Eau", lumiere: "Lumière", nutriments: "Nutriments", p
 const GRAV_LABEL = { faible: "gravité faible", moyenne: "gravité moyenne", elevee: "gravité élevée" };
 
 function render(r) {
-  // gauge
-  const score = Math.max(0, Math.min(100, r.score_sante));
+  let score = Number(r.score_sante);
+  if (!isFinite(score)) score = 0;
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  let etat = r.etat_general;
+  if (!["sain", "attention", "critique"].includes(etat)) {
+    etat = score >= 75 ? "sain" : score >= 40 ? "attention" : "critique";
+  }
+
   $("scoreVal").textContent = score;
   const arc = $("gaugeArc");
   const circ = 251.2;
@@ -386,38 +352,39 @@ function render(r) {
   arc.style.stroke = score >= 75 ? "var(--ok)" : score >= 40 ? "var(--warn)" : "var(--crit)";
 
   const badge = $("stateBadge");
-  badge.className = "badge b-" + r.etat_general;
+  badge.className = "badge b-" + etat;
   const bl = { sain: "✅ Plante saine", attention: "⚠️ À surveiller", critique: "⛔ État critique" };
-  badge.textContent = bl[r.etat_general] || r.etat_general;
+  badge.textContent = bl[etat];
 
   $("plantName").textContent = r.plante_identifiee ? "Plante : " + r.plante_identifiee : "";
-  $("resume").textContent = r.resume;
+  $("resume").textContent = r.resume || "";
 
-  // diagnostics
   const list = $("diagList");
   list.innerHTML = "";
-  if (!r.diagnostics || r.diagnostics.length === 0) {
+  const diags = Array.isArray(r.diagnostics) ? r.diagnostics : [];
+  if (diags.length === 0) {
     $("diagTitle").classList.add("hidden");
   } else {
     $("diagTitle").classList.remove("hidden");
-    r.diagnostics.forEach(d => {
+    diags.forEach(d => {
+      const grav = ["faible","moyenne","elevee"].includes(d.gravite) ? d.gravite : "moyenne";
       const el = document.createElement("div");
-      el.className = "diag g-" + d.gravite;
-      const chips = (d.indices_visuels || []).map(i => `<span class="chip">${esc(i)}</span>`).join("");
+      el.className = "diag g-" + grav;
+      const indices = Array.isArray(d.indices_visuels) ? d.indices_visuels : [];
+      const chips = indices.map(i => `<span class="chip">${esc(i)}</span>`).join("");
       el.innerHTML = `
         <div class="top">
-          <div class="name">${CAT_ICON[d.categorie] || "🔎"} ${esc(d.probleme)}</div>
-          <div class="meta">${CAT_LABEL[d.categorie] || ""} · ${GRAV_LABEL[d.gravite]} · confiance ${esc(d.confiance)}</div>
+          <div class="name">${CAT_ICON[d.categorie] || "🔎"} ${esc(d.probleme || "Problème")}</div>
+          <div class="meta">${CAT_LABEL[d.categorie] || ""} · ${GRAV_LABEL[grav]}${d.confiance ? " · confiance " + esc(d.confiance) : ""}</div>
         </div>
         <div class="chips">${chips}</div>`;
       list.appendChild(el);
     });
   }
 
-  // actions
   const ul = $("actionList");
   ul.innerHTML = "";
-  (r.actions || []).forEach(a => {
+  (Array.isArray(r.actions) ? r.actions : []).forEach(a => {
     const li = document.createElement("li");
     li.textContent = a;
     ul.appendChild(li);
@@ -427,7 +394,7 @@ function render(r) {
   results.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+function esc(s) { const d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
 function showError(m) { errBox.textContent = m; errBox.classList.remove("hidden"); }
 function hideError() { errBox.classList.add("hidden"); }
 
